@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Application/Application.csproj" />
+  <Project Path="DiscordBot/DiscordBot.csproj" />
+  <Project Path="Domain/Domain.csproj" />
+  <Project Path="Infrestructure/Infrestructure.csproj" />
+</Solution>

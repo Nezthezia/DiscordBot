@@ -1,0 +1,54 @@
+# Archivos de compilación y resultados
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+[Tt]est[Rr]esults/
+[Bb]uild[Ll]og.*
+
+# Archivos temporales de compilación y paquetes
+*.ilk
+*.pdb
+*.log
+*.project
+*.pubxml
+*.publishproj
+*.nuget.props
+*.nuget.targets
+.nuget/
+[Nn]uget/
+packages/
+!packages/build/
+!packages/buildTransitive/
+!packages/[Nn]ative/
+!packages/lib/
+!packages/api/
+!packages/helpers/
+
+# Configuración del usuario y dependencias de Visual Studio / JetBrains
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.sln.xml
+*.csproj.user
+_ReSharper.*/
+[Tt]est[Rr]esult.xml
+[Dd]iscover[Ll]og.xml
+*.DotSettings
+.vs/
+.vscode/
+
+# Ignorar resultados de empaquetado de librerías (nupkg)
+*.nupkg
+*.snupkg
