@@ -1,5 +1,7 @@
-﻿using Discord.Interactions;
-using Discord;
+﻿using Discord;
+using Discord.Interactions;
+using Infrestructure.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace DiscordBot.Handler
 {
@@ -11,25 +13,35 @@ namespace DiscordBot.Handler
         IParameterInfo parameter,
         IServiceProvider services)
         {
-            // 1. Obtener lo que el usuario está escribiendo en tiempo real
             string userInput = autocompleteInteraction.Data.Current.Value?.ToString() ?? "";
 
-            // 2. Tu lista de sugerencias (En el futuro, aquí llamarás a tu capa Application/Lavalink)
-            var listaSugerencias = new List<AutocompleteResult>
-        {
-            new AutocompleteResult("Never Gonna Give You Up - Rick Astley", "ytsearch:never gonna give you up"),
-            new AutocompleteResult("Chop Suey! - System of a Down", "ytsearch:chop suey"),
-            new AutocompleteResult("Blinding Lights - The Weeknd", "ytsearch:blinding lights"),
-            new AutocompleteResult("In The End - Linkin Park", "ytsearch:in the end")
-        };
+            // Para no saturar a la API de YouTube, no busques si ha escrito menos de 3 letras
+            if (string.IsNullOrWhiteSpace(userInput) || userInput.Length < 3)
+            {
+                return AutocompletionResult.FromSuccess(Enumerable.Empty<AutocompleteResult>());
+            }
 
-            // 3. Filtrar las sugerencias según lo que el usuario ya escribió
-            var filtradas = listaSugerencias
-                .Where(x => x.Name.Contains(userInput, StringComparison.OrdinalIgnoreCase))
-                .Take(25); // Discord permite un máximo de 25 opciones
+            try
+            {
+                var audioService = services.GetRequiredService<LavalinkAudioService>();
 
-            // 4. Retornar los resultados a Discord
-            return AutocompletionResult.FromSuccess(filtradas);
+                // Buscamos los tracks reales en Lavalink
+                var tracksEncontrados = await audioService.SearchTracksAsync(userInput);
+
+                // Convertimos los tracks de Lavalink al formato que entiende Discord
+                var sugerencias = tracksEncontrados.Select(track =>
+                    new AutocompleteResult(
+                        name: $"{track.Title} ({track.Author})".Take(100).ToString(), // Discord limita a 100 caracteres el nombre
+                        value: track.Uri!.ToString() // 👈 Guardamos la URL real como valor
+                    ));
+
+                return AutocompletionResult.FromSuccess(sugerencias);
+            }
+            catch
+            {
+                // Si algo falla (ej. Lavalink apagado), devolvemos una lista vacía limpiamente
+                return AutocompletionResult.FromSuccess(Enumerable.Empty<AutocompleteResult>());
+            }
         }
     }
 }

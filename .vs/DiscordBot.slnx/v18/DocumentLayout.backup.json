@@ -3,16 +3,20 @@
   "WorkspaceRootPath": "C:\\Users\\gatob\\source\\repos\\DiscordBot\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{C09FA002-4039-4C79-8CA0-27E9E4BF1B61}|DiscordBot\\DiscordBot.csproj|c:\\users\\gatob\\source\\repos\\discordbot\\discordbot\\moduls\\generalmodule.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{C09FA002-4039-4C79-8CA0-27E9E4BF1B61}|DiscordBot\\DiscordBot.csproj|solutionrelative:discordbot\\moduls\\generalmodule.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{100C09B3-E58F-6B6B-3AA6-D66188F478A2}|DiscordBot\\DiscordBot.csproj|c:\\users\\gatob\\source\\repos\\discordbot\\discordbot\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{100C09B3-E58F-6B6B-3AA6-D66188F478A2}|DiscordBot\\DiscordBot.csproj|solutionrelative:discordbot\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{C09FA002-4039-4C79-8CA0-27E9E4BF1B61}|DiscordBot\\DiscordBot.csproj|c:\\users\\gatob\\source\\repos\\discordbot\\discordbot\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{C09FA002-4039-4C79-8CA0-27E9E4BF1B61}|DiscordBot\\DiscordBot.csproj|solutionrelative:discordbot\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{100C09B3-E58F-6B6B-3AA6-D66188F478A2}|DiscordBot\\DiscordBot.csproj|c:\\users\\gatob\\source\\repos\\discordbot\\discordbot\\background\\discordbotworker.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{100C09B3-E58F-6B6B-3AA6-D66188F478A2}|DiscordBot\\DiscordBot.csproj|solutionrelative:discordbot\\background\\discordbotworker.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{C09FA002-4039-4C79-8CA0-27E9E4BF1B61}|DiscordBot\\DiscordBot.csproj|c:\\users\\gatob\\source\\repos\\discordbot\\discordbot\\background\\discordbotworker.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{C09FA002-4039-4C79-8CA0-27E9E4BF1B61}|DiscordBot\\DiscordBot.csproj|solutionrelative:discordbot\\background\\discordbotworker.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{100C09B3-E58F-6B6B-3AA6-D66188F478A2}|DiscordBot\\DiscordBot.csproj|c:\\users\\gatob\\source\\repos\\discordbot\\discordbot\\moduls\\musicmodule.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{100C09B3-E58F-6B6B-3AA6-D66188F478A2}|DiscordBot\\DiscordBot.csproj|solutionrelative:discordbot\\moduls\\musicmodule.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{223E19B0-DE40-BBE9-644C-89D093555741}|Infrestructure\\Infrestructure.csproj|c:\\users\\gatob\\source\\repos\\discordbot\\infrestructure\\services\\lavalinkaudioservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{223E19B0-DE40-BBE9-644C-89D093555741}|Infrestructure\\Infrestructure.csproj|solutionrelative:infrestructure\\services\\lavalinkaudioservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -22,7 +26,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 2,
+          "SelectedChildIndex": 4,
           "Children": [
             {
               "$type": "Bookmark",
@@ -31,40 +35,50 @@
             {
               "$type": "Document",
               "DocumentIndex": 1,
-              "Title": "Program.cs",
-              "DocumentMoniker": "C:\\Users\\gatob\\source\\repos\\DiscordBot\\DiscordBot\\Program.cs",
-              "RelativeDocumentMoniker": "DiscordBot\\Program.cs",
-              "ToolTip": "C:\\Users\\gatob\\source\\repos\\DiscordBot\\DiscordBot\\Program.cs",
-              "RelativeToolTip": "DiscordBot\\Program.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABYAAABPAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-06-26T21:33:49.685Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "GeneralModule.cs",
-              "DocumentMoniker": "C:\\Users\\gatob\\source\\repos\\DiscordBot\\DiscordBot\\Moduls\\GeneralModule.cs",
-              "RelativeDocumentMoniker": "DiscordBot\\Moduls\\GeneralModule.cs",
-              "ToolTip": "C:\\Users\\gatob\\source\\repos\\DiscordBot\\DiscordBot\\Moduls\\GeneralModule.cs",
-              "RelativeToolTip": "DiscordBot\\Moduls\\GeneralModule.cs",
-              "ViewState": "AgIAAAIAAAAAAAAAAAAIwBcAAAAbAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-06-26T21:10:13.04Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
               "Title": "DiscordBotWorker.cs",
               "DocumentMoniker": "C:\\Users\\gatob\\source\\repos\\DiscordBot\\DiscordBot\\Background\\DiscordBotWorker.cs",
               "RelativeDocumentMoniker": "DiscordBot\\Background\\DiscordBotWorker.cs",
               "ToolTip": "C:\\Users\\gatob\\source\\repos\\DiscordBot\\DiscordBot\\Background\\DiscordBotWorker.cs",
               "RelativeToolTip": "DiscordBot\\Background\\DiscordBotWorker.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAAAgAAAAAAAAAA==",
+              "ViewState": "AgIAAAsAAAAAAAAAAAAAwAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-06-26T20:52:06.747Z",
+              "WhenOpened": "2026-06-27T03:09:38.221Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "LavalinkAudioService.cs",
+              "DocumentMoniker": "C:\\Users\\gatob\\source\\repos\\DiscordBot\\Infrestructure\\Services\\LavalinkAudioService.cs",
+              "RelativeDocumentMoniker": "Infrestructure\\Services\\LavalinkAudioService.cs",
+              "ToolTip": "C:\\Users\\gatob\\source\\repos\\DiscordBot\\Infrestructure\\Services\\LavalinkAudioService.cs",
+              "RelativeToolTip": "Infrestructure\\Services\\LavalinkAudioService.cs",
+              "ViewState": "AgIAAEQAAAAAAAAAAAAwwEMAAAATAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-27T02:40:46.612Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "MusicModule.cs",
+              "DocumentMoniker": "C:\\Users\\gatob\\source\\repos\\DiscordBot\\DiscordBot\\Moduls\\MusicModule.cs",
+              "RelativeDocumentMoniker": "DiscordBot\\Moduls\\MusicModule.cs",
+              "ToolTip": "C:\\Users\\gatob\\source\\repos\\DiscordBot\\DiscordBot\\Moduls\\MusicModule.cs",
+              "RelativeToolTip": "DiscordBot\\Moduls\\MusicModule.cs",
+              "ViewState": "AgIAABAAAAAAAAAAAAAQwBkAAAARAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-27T02:36:01.131Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\gatob\\source\\repos\\DiscordBot\\DiscordBot\\Program.cs",
+              "RelativeDocumentMoniker": "DiscordBot\\Program.cs",
+              "ToolTip": "C:\\Users\\gatob\\source\\repos\\DiscordBot\\DiscordBot\\Program.cs",
+              "RelativeToolTip": "DiscordBot\\Program.cs",
+              "ViewState": "AgIAACcAAAAAAAAAAAAAACUAAAAeAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-27T02:09:27.678Z",
               "EditorCaption": ""
             }
           ]
