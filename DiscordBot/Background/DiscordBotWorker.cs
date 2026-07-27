@@ -106,6 +106,20 @@ namespace DiscordBot.Background
                 _logger.LogInformation("Comando !hola recibido de {User}", message.Author.Username);
                 await message.Channel.SendMessageAsync($"¡Hola Mundo desde .NET 10 y Clean Architecture, {message.Author.Mention}! 🚀");
             }
+            else if(message.Content.ToLower().Equals($"paola", StringComparison.OrdinalIgnoreCase))
+            {
+                string miUrl = "https://cdn.discordapp.com/attachments/1528389131758211084/1531147712077234286/20260726_215345.jpg?ex=6a6827ed&is=6a66d66d&hm=b8a8622d6e77e74b6ca81a5f1d89894e416209fb37c58b2ca288803012f07004&";
+                _logger.LogInformation("Enviar foto de la admin");
+                await message.Channel.SendMessageAsync(miUrl);
+            }
+            else if (message.Content.ToLower().Equals($"goku", StringComparison.OrdinalIgnoreCase)
+                ||
+                message.Content.ToLower().Equals($"alex", StringComparison.OrdinalIgnoreCase))
+            {
+                string miUrl = "https://klipy.com/gifs/mujikcboro-seriymujik-1";
+                _logger.LogInformation("Enviar foto del programador");
+                await message.Channel.SendMessageAsync(miUrl);
+            }
         }
 
         public override async Task StopAsync(CancellationToken cancellationToken)
