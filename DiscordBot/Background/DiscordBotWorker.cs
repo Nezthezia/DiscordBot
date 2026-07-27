@@ -73,7 +73,7 @@ namespace DiscordBot.Background
             await _interactionService.AddModulesAsync(System.Reflection.Assembly.GetExecutingAssembly(), _services);
 
             // Tu ID de servidor de pruebas
-            ulong guildId = 1459349725609459794;
+            ulong guildId = _configuration.GetValue<ulong>("DiscordConfig:TestGuildId");
 
             // ¡AQUÍ VA! Le dice a Discord: "Oye, estos son mis comandos Slash para este servidor"
             _logger.LogInformation("Registrando comandos Slash en Discord...");
