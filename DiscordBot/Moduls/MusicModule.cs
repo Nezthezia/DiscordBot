@@ -121,5 +121,34 @@ namespace DiscordBot.Moduls
                 await FollowupAsync($"Error al intentar obtener la lista de reproducción: {ex.Message}");
             }
         }
+
+
+        [SlashCommand("stop", "Detiene el seguir reproduciendo musica con el bot")]
+        public async Task StopCommandAsync()
+        {
+            await DeferAsync();
+
+            var user = Context.User as IGuildUser;
+            var voiceChannel = user?.VoiceChannel;
+
+            if (voiceChannel == null)
+            {
+                await FollowupAsync("❌ Debes estar en un canal de voz para usar este comando.");
+                return;
+            }
+
+            try
+            {
+
+                await _audioService.StopAsync(Context.Guild.Id);
+
+                await FollowupAsync("Deteniendo el bot para reproducir musica");
+            }
+            catch (Exception ex)
+            {
+                await FollowupAsync($"Error al intentar detener la reproduccion: {ex.Message}");
+            }
+        }
+
     }
 }

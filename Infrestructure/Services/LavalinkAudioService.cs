@@ -20,7 +20,10 @@ namespace Infrestructure.Services
         public async Task PlayAsync(ulong guildId, ulong voiceChannelId, string query)
         {
             // Configuración para que el bot soporte una cola de canciones
-            var options = new QueuedLavalinkPlayerOptions();
+            var options = new QueuedLavalinkPlayerOptions
+            {
+                DisconnectOnStop = true
+            };
 
             // Unir al bot al canal de voz del servidor
             var player = await _lavalink.Players.JoinAsync<QueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>(
@@ -29,7 +32,9 @@ namespace Infrestructure.Services
             playerFactory: (context, _) => ValueTask.FromResult(new QueuedLavalinkPlayer(context)),
             options: Options.Create(options));
 
-            var searchMode = Uri.TryCreate(query, UriKind.Absolute, out _)
+            var isSpotify = query.Contains("spotify.com", StringComparison.OrdinalIgnoreCase);
+
+            var searchMode = (!isSpotify && Uri.TryCreate(query, UriKind.Absolute, out _))
             ? TrackSearchMode.None
             : TrackSearchMode.YouTube;
 
@@ -86,5 +91,16 @@ namespace Infrestructure.Services
             // Si el reproductor no existe, la lista vuelve vacía limpiamente
             return Enumerable.Empty<string>();
         }
+
+
+        public async Task StopAsync(ulong guildId)
+        {
+            if (_lavalink.Players.TryGetPlayer<QueuedLavalinkPlayer>(guildId, out var player) && player is not null)
+            {
+                // Detiene la música, vacía la cola y se sale del canal de voz
+                await player.DisconnectAsync();
+            }
+        }
+
     }
 }
