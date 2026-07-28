@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
+using DiscordBot.Handler;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -14,7 +15,7 @@ namespace DiscordBot.Background
         private readonly ILogger<DiscordBotWorker> _logger;
         private readonly InteractionService _interactionService;
         private readonly IServiceProvider _services;
-        private readonly string commandInit = "!";
+        private readonly DiscordMessageListener _messageListener;
 
         // El constructor ahora recibe TODO limpio desde .NET
         public DiscordBotWorker(
@@ -22,13 +23,15 @@ namespace DiscordBot.Background
             ILogger<DiscordBotWorker> logger,
             IServiceProvider services,
             DiscordSocketClient client,
-            InteractionService interactionService)
+            InteractionService interactionService,
+            DiscordMessageListener messageListener)
         {
             _configuration = configuration;
             _logger = logger;
             _services = services;
             _client = client;
             _interactionService = interactionService;
+            _messageListener = messageListener;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -39,7 +42,7 @@ namespace DiscordBot.Background
             _client.Log += LogAsync;
 
             // 2. Enlazar el evento de mensajes recibidos (Nuestro Hola Mundo)
-            _client.MessageReceived += HandleMessageAsync;
+            _client.MessageReceived += _messageListener.HandleMessageAsync;
 
             _client.InteractionCreated += OnInteractionCreatedAsync;
 
@@ -90,35 +93,6 @@ namespace DiscordBot.Background
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al ejecutar una interacción.");
-            }
-        }
-
-
-        //Aqui podemos crear clases para los comandos mediante la arquitectira
-        private async Task HandleMessageAsync(SocketMessage message)
-        {
-            // Ignorar mensajes de otros bots (o de nosotros mismos)
-            if (message.Author.IsBot) return;
-
-            // El mítico comando "Hola Mundo"
-            if (message.Content.Equals($"{commandInit}hola", StringComparison.OrdinalIgnoreCase))
-            {
-                _logger.LogInformation("Comando !hola recibido de {User}", message.Author.Username);
-                await message.Channel.SendMessageAsync($"¡Hola Mundo desde .NET 10 y Clean Architecture, {message.Author.Mention}! 🚀");
-            }
-            else if(message.Content.ToLower().Equals($"paola", StringComparison.OrdinalIgnoreCase))
-            {
-                string miUrl = "https://cdn.discordapp.com/attachments/1528389131758211084/1531147712077234286/20260726_215345.jpg?ex=6a6827ed&is=6a66d66d&hm=b8a8622d6e77e74b6ca81a5f1d89894e416209fb37c58b2ca288803012f07004&";
-                _logger.LogInformation("Enviar foto de la admin");
-                await message.Channel.SendMessageAsync(miUrl);
-            }
-            else if (message.Content.ToLower().Equals($"goku", StringComparison.OrdinalIgnoreCase)
-                ||
-                message.Content.ToLower().Equals($"alex", StringComparison.OrdinalIgnoreCase))
-            {
-                string miUrl = "https://klipy.com/gifs/mujikcboro-seriymujik-1";
-                _logger.LogInformation("Enviar foto del programador");
-                await message.Channel.SendMessageAsync(miUrl);
             }
         }
 

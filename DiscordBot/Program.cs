@@ -1,11 +1,13 @@
+using Application.Interfaces;
+using Application.Services;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 using DiscordBot.Background;
 using Infrestructure.Services;
-using Lavalink4NET.Extensions;
-using Lavalink4NET.DiscordNet;
 using Lavalink4NET.Clients;
+using Lavalink4NET.DiscordNet;
+using Lavalink4NET.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,6 +45,11 @@ builder.Services.ConfigureLavalink(options =>
     options.BaseAddress = new Uri(builder.Configuration["LavalinkConfig:BaseAddress"]!);
     options.Passphrase = builder.Configuration["LavalinkConfig:Password"]!;
 });
+
+builder.Services.AddTransient<IBotCommandService, BotCommandService>();
+builder.Services.AddSingleton<DiscordBot.Handler.DiscordMessageListener>();
+
+builder.Services.AddHostedService<WebPollerWorker>();
 
 var app = builder.Build();
 
