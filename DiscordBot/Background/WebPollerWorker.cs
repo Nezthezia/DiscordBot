@@ -7,7 +7,7 @@ namespace DiscordBot.Background
         private readonly DiscordSocketClient _client;
         private readonly IConfiguration _configuration;
         private readonly ILogger<WebPollerWorker> _logger;
-        private readonly long _pollingInterval = 5;
+        private readonly long _pollingInterval = 60;
 
         public WebPollerWorker(
             DiscordSocketClient client,
@@ -42,7 +42,7 @@ namespace DiscordBot.Background
                     // Buscar el canal por su ID
                     if (_client.GetChannel(channelId) is SocketTextChannel channel)
                     {
-                        string mensaje = "Hola pinches putas";
+                        string mensaje = "Manden porno alv porno!!!";
 
                         await channel.SendMessageAsync(mensaje);
                         _logger.LogInformation("Mensaje periódico enviado con éxito al canal {ChannelId}", channelId);
