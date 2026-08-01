@@ -37,13 +37,17 @@ builder.Services.AddSingleton(sp =>
 
 builder.Services.AddHostedService<DiscordBotWorker>();
 
+builder.Services.AddHttpClient();
+builder.Services.AddMemoryCache();
+
 builder.Services.AddLavalink();
 builder.Services.AddSingleton<IDiscordClientWrapper, DiscordClientWrapper>();
 
 builder.Services.ConfigureLavalink(options =>
 {
     options.BaseAddress = new Uri(builder.Configuration["LavalinkConfig:BaseAddress"]!);
-    options.Passphrase = builder.Configuration["LavalinkConfig:Password"]!;
+    options.Passphrase = builder.Configuration["LavalinkConfig:Password"] ?? "youshallnotpass";
+    options.ReadyTimeout = TimeSpan.FromSeconds(120);
 });
 
 builder.Services.AddTransient<IBotCommandService, BotCommandService>();
