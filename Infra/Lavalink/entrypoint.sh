@@ -1,35 +1,35 @@
-#!/bin/sh
+#!/bin/bash
 
 echo "=========================================="
 echo "   INICIANDO LAVALINK + BOT .NET"
 echo "=========================================="
 
-# 1. Movernos al directorio donde está el .jar y application.yml
-cd /app/Infra/Lavalink
+# 1. Posicionarse en el directorio de Lavalink
+cd /app/Infra/Lavalink || exit 1
 
-# 2. Comprobar que el archivo .jar existe
+# 2. Verificar que Lavalink.jar exista
 if [ ! -f "Lavalink.jar" ]; then
     echo "❌ ERROR FATAL: No se encuentra Lavalink.jar en /app/Infra/Lavalink!"
     ls -la
     exit 1
 fi
 
-echo "🚀 Arrancando proceso Java..."
-# Iniciar Java imprimiendo los logs en la consola principal
+echo "🚀 Arrancando proceso Java (Lavalink v4)..."
 java -Xms128m -Xmx200m -XX:+UseSerialGC -jar Lavalink.jar &
 
-echo "⏳ Esperando a que el puerto 2333 responda..."
-# Esperar activamente a que el servidor WebSocket de Lavalink abra el puerto 2333
-for i in $(seq 1 30); do
-    if nc -z localhost 2333; then
-        echo "✅ ¡Lavalink abrió el puerto 2333 con éxito!"
+echo "⏳ Esperando a que Lavalink abra el puerto 2333..."
+
+# 3. Comprobación usando sockets nativos de bash o wget (sin necesitar nc)
+for i in $(seq 1 45); do
+    if (echo > /dev/tcp/localhost/2333) 2>/dev/null || wget -q --spider http://localhost:2333 2>/dev/null; then
+        echo "✅ ¡Lavalink respondió en el puerto 2333 con éxito!"
         break
     fi
-    echo "   Esperando a Lavalink... ($i/30)"
+    echo "   Cargando plugins y servidor WebSocket... ($i/45)"
     sleep 2
 done
 
-# Regresar a la carpeta principal e iniciar .NET
-cd /app
+# 4. Volver al directorio raíz e iniciar .NET
+cd /app || exit 1
 echo "🤖 Iniciando Bot de .NET..."
 exec dotnet DiscordBot.dll
