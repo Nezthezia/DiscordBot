@@ -4,32 +4,35 @@ echo "=========================================="
 echo "   INICIANDO LAVALINK + BOT .NET"
 echo "=========================================="
 
-# 1. Posicionarse en el directorio de Lavalink
 cd /app/Infra/Lavalink || exit 1
 
-# 2. Verificar que Lavalink.jar exista
 if [ ! -f "Lavalink.jar" ]; then
     echo "❌ ERROR FATAL: No se encuentra Lavalink.jar en /app/Infra/Lavalink!"
-    ls -la
     exit 1
 fi
 
-echo "🚀 Arrancando proceso Java (Lavalink v4)..."
+echo "🚀 Arrancando proceso Java..."
 java -Xms128m -Xmx200m -XX:+UseSerialGC -jar Lavalink.jar &
 
-echo "⏳ Esperando a que Lavalink abra el puerto 2333..."
+echo "⏳ Esperando a que Lavalink abra el puerto 2333 y responda HTTP..."
 
-# 3. Comprobación usando sockets nativos de bash o wget (sin necesitar nc)
-for i in $(seq 1 45); do
-    if (echo > /dev/tcp/localhost/2333) 2>/dev/null || wget -q --spider http://localhost:2333 2>/dev/null; then
-        echo "✅ ¡Lavalink respondió en el puerto 2333 con éxito!"
+# Bucle de 60 segundos usando Python (incluido por defecto o nativo en muchas imágenes) o socket directo
+for i in $(seq 1 30); do
+    # Intentamos abrir socket TCP en 127.0.0.1 2333
+    exec 3<>/dev/tcp/127.0.0.1/2333 2>/dev/null
+    if [ $? -eq 0 ]; then
+        echo "✅ ¡Lavalink abrió el puerto 2333 con éxito!"
+        exec 3<&-
+        exec 3>&-
         break
     fi
-    echo "   Cargando plugins y servidor WebSocket... ($i/45)"
+    echo "   Lavalink aún está cargando plugins... ($i/30)"
     sleep 2
 done
 
-# 4. Volver al directorio raíz e iniciar .NET
+# Damos 3 segundos extra para que Spring Boot levante el WebSocket tras abrir el puerto
+sleep 3
+
 cd /app || exit 1
 echo "🤖 Iniciando Bot de .NET..."
 exec dotnet DiscordBot.dll
