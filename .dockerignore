@@ -1,0 +1,28 @@
+# Archivos de depuración y caché de Visual Studio / VS Code
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Control de versiones (Git)
+.git/
+.github/
+.gitignore
+.gitattributes
+
+# Carpetas de compilación local de .NET (Importante: no copiarlas para que compile limpio en Linux)
+**/bin/
+**/obj/
+
+# Logs y temporales
+*.log
+*.tmp
+
+# Archivos de documentación / Markdown no requeridos en runtime
+README.md
+*.md
+
+# Excluir archivos application.yml locales si prefieres manejarlos por variables de entorno
+# Infra/Lavalink/application-local.yml
