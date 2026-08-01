@@ -31,8 +31,7 @@ COPY --from=build /app/publish .
 COPY Infra /app/Infra
 
 # Copiar y dar permisos al script de entrada
-COPY entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
+RUN chmod +x /app/Infra/Lavalink/entrypoint.sh
 
 ENV ASPNETCORE_URLS=http://+:${PORT}
 
