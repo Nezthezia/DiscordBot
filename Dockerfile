@@ -10,8 +10,7 @@ COPY ["Application/Application.csproj", "Application/"]
 COPY ["Domain/Domain.csproj", "Domain/"]
 COPY ["Infrestructure/Infrestructure.csproj", "Infrestructure/"]
 
-RUN dotnet restore "DiscordBot/DiscordBot.csproj"
-
+RUN apt-get update && apt-get install -y openjdk-21-jre-headless netcat-openbsd && rm -rf /var/lib/apt/lists/*
 # Copiar código fuente y compilar
 COPY . .
 WORKDIR "/src/DiscordBot"
