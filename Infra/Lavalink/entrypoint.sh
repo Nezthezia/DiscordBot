@@ -10,8 +10,8 @@ echo "🚀 Arrancando Lavalink en segundo plano..."
 java -Xms128m -Xmx200m -XX:+UseSerialGC -jar Lavalink.jar &
 
 echo "⏳ Esperando a que Lavalink esté listo en puerto 2333..."
-while ! nc -z localhost 2333; do
-  sleep 10
+until (echo > /dev/tcp/localhost/2333) 2>/dev/null; do
+  sleep 2
 done
 
 echo "✅ Lavalink listo, iniciando Bot de .NET..."
