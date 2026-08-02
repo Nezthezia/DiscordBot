@@ -16,4 +16,5 @@ done
 
 echo "✅ Lavalink listo, iniciando Bot de .NET..."
 cd /app
+export ASPNETCORE_HTTP_PORTS=8080
 exec dotnet DiscordBot.dll
