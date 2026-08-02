@@ -45,9 +45,11 @@ builder.Services.AddSingleton<IDiscordClientWrapper, DiscordClientWrapper>();
 
 builder.Services.ConfigureLavalink(options =>
 {
-    options.BaseAddress = new Uri(builder.Configuration["LavalinkConfig:BaseAddress"]!);
+    var baseUrl = builder.Configuration["LavalinkConfig:BaseAddress"]!;
+    options.BaseAddress = new Uri(baseUrl);
     options.Passphrase = builder.Configuration["LavalinkConfig:Password"] ?? "youshallnotpass";
     options.ReadyTimeout = TimeSpan.FromSeconds(120);
+    options.WebSocketUri = new Uri(baseUrl.Replace("https://", "wss://").Replace("http://", "ws://") + "/v4/websocket");
 });
 
 builder.Services.AddTransient<IBotCommandService, BotCommandService>();
