@@ -1,0 +1,58 @@
+server:
+  port: 2333
+  address: 0.0.0.0
+
+lavalink:
+  plugins:
+    - dependency: "com.github.topi314.lavasrc:lavasrc-plugin:4.2.0"
+    - dependency: "dev.lavalink.youtube:youtube-plugin:1.18.2"
+
+  server:
+    password: ${LAVALINK_PASSWORD:youshallnotpass}
+    sources:
+      # Desactivamos el motor nativo antiguo de YouTube (en Lavalink v4 debe usarse el plugin de dev.lavalink.youtube)
+      youtube: false
+      local: true
+      soundcloud: true
+    bufferDurationMs: 400
+    youtubePlaylistLoadLimit: 6
+    playerUpdateInterval: 5
+
+metrics:
+  prometheus:
+    enabled: false
+
+logging:
+  level:
+    root: INFO
+    lavalink: INFO
+
+plugins:
+  # Configuración del plugin oficial de YouTube
+  youtube:
+    enabled: true
+    allowSearch: true
+    allowDirectVideoIds: true
+    allowDirectPlaylistIds: true
+    clients:
+      - MUSIC
+      - WEB
+      - ANDROID_VR
+
+  # Configuración de LavaSrc para Spotify
+  lavasrc:
+    providers:
+      # En Lavalink v4 con dev.lavalink.youtube, 'ytsearch' como identificador simple
+      # o 'ytmsearch' (YouTube Music) es lo que resuelve correctamente la búsqueda interna.
+      - "ytmsearch:%ISRC%"
+      - "ytsearch:%ISRC%"
+      - "ytmsearch:%QUERY%"
+      - "ytsearch:%QUERY%"
+    sources:
+      spotify: false
+    spotify:
+      clientId: "7ca2ed022a7d4f5aaecdf539ac5bbf2b"
+      clientSecret: "4060766f4cf54dce88a181ddfa2014ae"
+      countryCode: "MX"
+      playlistLoadLimit: 6
+      albumLoadLimit: 6
