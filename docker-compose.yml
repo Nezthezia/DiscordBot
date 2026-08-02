@@ -1,0 +1,19 @@
+version: '3.8'
+services:
+  lavalink:
+    build:
+      context: .
+      dockerfile: Infra/Lavalink/Dockerfile.lavalink
+    container_name: lavalink
+    restart: unless-stopped
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: discordbot
+    depends_on:
+      - lavalink
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
