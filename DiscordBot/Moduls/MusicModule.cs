@@ -2,7 +2,7 @@
 using Discord;
 using Discord.Interactions;
 using DiscordBot.Handler;
-using Infrestructure.Services;
+using Infrastructure.Services;
 
 namespace DiscordBot.Moduls
 {

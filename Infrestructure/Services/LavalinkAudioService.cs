@@ -1,57 +1,50 @@
-﻿using Lavalink4NET;
+﻿using Application.Interfaces;
+using Lavalink4NET;
 using Lavalink4NET.Players;
 using Lavalink4NET.Players.Queued;
-using Lavalink4NET.Rest.Entities.Tracks;
 using Lavalink4NET.Tracks;
 using Microsoft.Extensions.Options;
-using System.Numerics;
+using IAudioService = Lavalink4NET.IAudioService;
 
-namespace Infrestructure.Services
+namespace Infrastructure.Services
 {
     public class LavalinkAudioService : Application.Interfaces.IAudioService
     {
-        private readonly IAudioService _lavalink; // El servicio nativo que inyectó .NET
+        private readonly IAudioService _lavalink;
+        private readonly ISpotifyModule _spotify;
+        private readonly IDeezerModule _deezer;
 
-        public LavalinkAudioService(IAudioService lavalink)
+        public LavalinkAudioService(
+            IAudioService lavalink,
+            ISpotifyModule spotify,
+            IDeezerModule deezer)
         {
             _lavalink = lavalink;
+            _spotify = spotify;
+            _deezer = deezer;
         }
 
         public async Task PlayAsync(ulong guildId, ulong voiceChannelId, string query)
         {
-            // Configuración para que el bot soporte una cola de canciones
-            var options = new QueuedLavalinkPlayerOptions
-            {
-                DisconnectOnStop = true
-            };
+            var options = new QueuedLavalinkPlayerOptions { DisconnectOnStop = true };
 
-            // Unir al bot al canal de voz del servidor
             var player = await _lavalink.Players.JoinAsync<QueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>(
-            guildId,
-            voiceChannelId,
-            playerFactory: (context, _) => ValueTask.FromResult(new QueuedLavalinkPlayer(context)),
-            options: Options.Create(options));
+                guildId,
+                voiceChannelId,
+                playerFactory: (context, _) => ValueTask.FromResult(new QueuedLavalinkPlayer(context)),
+                options: Options.Create(options));
 
-            var isSpotify = query.Contains("spotify.com", StringComparison.OrdinalIgnoreCase);
-
-            var searchMode = (!isSpotify && Uri.TryCreate(query, UriKind.Absolute, out _))
-            ? TrackSearchMode.None
-            : TrackSearchMode.YouTube;
-
-            var track = await _lavalink.Tracks.LoadTrackAsync(query, searchMode);
+            var track = await ResolveTrackAsync(query);
 
             if (track is null) return;
 
-            // Reproducir o mandar a la cola automáticamente
             await player.PlayAsync(track);
         }
 
         public async Task SkipAsync(ulong guildId)
         {
             if (_lavalink.Players.TryGetPlayer<QueuedLavalinkPlayer>(guildId, out var player) && player is not null)
-            {
                 await player.SkipAsync();
-            }
         }
 
         public async Task<IEnumerable<LavalinkTrack>> SearchTracksAsync(string query)
@@ -59,48 +52,81 @@ namespace Infrestructure.Services
             if (string.IsNullOrWhiteSpace(query))
                 return Enumerable.Empty<LavalinkTrack>();
 
-            // Buscamos una lista de tracks (LoadTracksAsync en lugar de LoadTrackAsync)
-            var searchResult = await _lavalink.Tracks.LoadTracksAsync(query, TrackSearchMode.YouTube);
+            // Buscamos primero en Deezer; si no hay resultados, intentamos en Spotify
+            var results = (await _deezer.SearchAsync(query)).ToList();
 
-            // Retornamos las primeras 5 o 7 canciones encontradas para no saturar
-            return searchResult.Tracks.Take(7) ?? Enumerable.Empty<LavalinkTrack>();
+            if (results.Count == 0)
+                results = (await _spotify.SearchAsync(query)).ToList();
+
+            return results;
         }
 
         public async Task<IEnumerable<string>> GetQueueAsync(ulong guildId)
         {
             if (_lavalink.Players.TryGetPlayer<QueuedLavalinkPlayer>(guildId, out var player) && player is not null)
             {
-                // NUEVA LÓGICA REEMPLAZADA:
                 var resultado = new List<string>();
 
-                // 1. Si hay algo sonando, lo metemos en la posición [0] con su prefijo
                 if (player.CurrentTrack is not null)
-                {
                     resultado.Add($"SONANDO AHORA: {player.CurrentTrack.Title} - {player.CurrentTrack.Author}");
-                }
 
-                // 2. Limpiamos nulos de la cola y transformamos a string al mismo tiempo
-                var enCola = player.Queue.Select(x => x.Track).OfType<LavalinkTrack>().Select(t => $"{t.Title} - {t.Author}");
+                var enCola = player.Queue
+                    .Select(x => x.Track)
+                    .OfType<LavalinkTrack>()
+                    .Select(t => $"{t.Title} - {t.Author}");
 
-                // 3. Acoplamos las canciones en espera al final de la lista
                 resultado.AddRange(enCola);
-
                 return resultado;
             }
 
-            // Si el reproductor no existe, la lista vuelve vacía limpiamente
             return Enumerable.Empty<string>();
         }
-
 
         public async Task StopAsync(ulong guildId)
         {
             if (_lavalink.Players.TryGetPlayer<QueuedLavalinkPlayer>(guildId, out var player) && player is not null)
-            {
-                // Detiene la música, vacía la cola y se sale del canal de voz
                 await player.DisconnectAsync();
-            }
         }
 
+        // ── Helpers privados ─────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Lógica centralizada de resolución de tracks:
+        /// 1. URL de Spotify  → SpotifyModule.ResolveAsync
+        /// 2. URL de Deezer   → DeezerModule.ResolveAsync
+        /// 3. Texto libre     → busca en Spotify primero, luego en Deezer como fallback
+        /// </summary>
+        private async Task<LavalinkTrack?> ResolveTrackAsync(string query)
+        {
+            if (_spotify.IsSpotifyUrl(query))
+                throw new InvalidOperationException("Spotify aun no esta disponible se le pide amablemente usar deezer o buscarlo manualmente.");
+            //return await _spotify.ResolveAsync(query);
+            else if (_deezer.IsDeezerUrl(query))
+                return await _deezer.ResolveAsync(query);
+
+            else if (IsYouTubeUrl(query))
+                throw new InvalidOperationException("YouTube no se puede usar.");
+
+            var deezerResults = await _deezer.SearchAsync(query, limit: 1);
+            var track = deezerResults.FirstOrDefault();
+
+            // Búsqueda por texto: Spotify es preferido, Deezer es el fallback
+            /*var spotifyResults = await _spotify.SearchAsync(query, limit: 1);
+            var track = spotifyResults.FirstOrDefault();
+
+            if (track is null)
+            {
+                var deezerResults = await _deezer.SearchAsync(query, limit: 1);
+                track = deezerResults.FirstOrDefault();
+            }*/
+
+            return track;
+        }
+
+        private static bool IsYouTubeUrl(string query)
+        {
+            return query.Contains("youtube.com", StringComparison.OrdinalIgnoreCase)
+                || query.Contains("youtu.be", StringComparison.OrdinalIgnoreCase);
+        }
     }
 }

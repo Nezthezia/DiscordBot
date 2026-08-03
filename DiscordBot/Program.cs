@@ -4,7 +4,7 @@ using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 using DiscordBot.Background;
-using Infrestructure.Services;
+using Infrastructure.Services;
 using Lavalink4NET.Clients;
 using Lavalink4NET.DiscordNet;
 using Lavalink4NET.Extensions;
@@ -28,6 +28,9 @@ builder.Services.AddSingleton(provider =>
 
     return new DiscordSocketClient(config);
 });
+
+builder.Services.AddSingleton<ISpotifyModule, SpotifyModule>();
+builder.Services.AddSingleton<IDeezerModule, DeezerModule>();
 
 builder.Services.AddSingleton<Application.Interfaces.IAudioService, LavalinkAudioService>();
 

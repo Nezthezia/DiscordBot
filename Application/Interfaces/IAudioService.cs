@@ -1,10 +1,14 @@
-﻿namespace Application.Interfaces
+﻿using Lavalink4NET.Tracks;
+
+namespace Application.Interfaces
 {
     public interface IAudioService
     {
         Task PlayAsync(ulong guildId, ulong voiceChannelId, string query);
         Task SkipAsync(ulong guildId);
         Task<IEnumerable<string>> GetQueueAsync(ulong guildId);
+
+        Task<IEnumerable<LavalinkTrack>> SearchTracksAsync(string query);
 
         Task StopAsync(ulong guildId);
     }
