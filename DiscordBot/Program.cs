@@ -22,7 +22,7 @@ builder.Services.AddSingleton(provider =>
     var config = new DiscordSocketConfig
     {
         GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.GuildVoiceStates | GatewayIntents.MessageContent,
-        MessageCacheSize = 10,
+        MessageCacheSize = 200,
         LogGatewayIntentWarnings = false // Opcional: evita alertas molestas en consola
     };
 

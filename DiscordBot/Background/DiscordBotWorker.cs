@@ -5,6 +5,7 @@ using DiscordBot.Handler;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Threading.Channels;
 
 namespace DiscordBot.Background
 {
@@ -45,6 +46,8 @@ namespace DiscordBot.Background
             _client.MessageReceived += _messageListener.HandleMessageAsync;
 
             _client.InteractionCreated += OnInteractionCreatedAsync;
+
+            _client.MessageDeleted += OnMessageDeleted;
 
             // 3. Leer el token desde el appsettings.json
             var token = _configuration["DiscordConfig:Token"];
@@ -93,6 +96,40 @@ namespace DiscordBot.Background
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al ejecutar una interacción.");
+            }
+        }
+
+        private async Task OnMessageDeleted(Cacheable<IMessage, ulong> cachedMessage,
+    Cacheable<IMessageChannel, ulong> cachedChannel)
+        {
+            var channel = await cachedChannel.GetOrDownloadAsync();
+            ulong channelId = _configuration.GetValue<ulong>("DiscordConfig:LogsChannelId");
+            string message = "-------------------------------------------\n"
+                + "!!!MENSAJE ELIMINADO!!!\n"
+                + $"Canal: #{channel?.Name ?? "Desconocido"}\n";
+
+            if (cachedMessage.HasValue)
+            {
+                var msg = cachedMessage.Value;
+                message += $"Autor: {msg.Author.Username} ({msg.Author.Id})\n"
+                    + $"Contenido: {msg.Content}\n";
+
+                if (msg.Attachments.Count > 0)
+                {
+                    message += $"Archivos adjuntos que tenía: {msg.Attachments.Count}\n";
+                }
+            }
+            else
+            {
+                message += "Contenido no disponible en la caché local.\n";
+            }
+            message += $"ID del Mensaje: {cachedMessage.Id}\n";
+
+            _logger.LogInformation(message);
+
+            if (_client.GetChannel(channelId) is SocketTextChannel _channel)
+            {
+                await _channel.SendMessageAsync(message);
             }
         }
 
