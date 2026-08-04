@@ -21,6 +21,7 @@ namespace DiscordBot.Handler
             try
             {
                 var audioService = services.GetRequiredService<IAudioService>();
+
                 var tracks = await audioService.SearchTracksAsync(userInput);
 
                 var sugerencias = tracks

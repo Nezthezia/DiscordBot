@@ -19,7 +19,7 @@ namespace DiscordBot.Moduls
         [SlashCommand("play", "Busca y reproduce una canción, o la añade a la cola")]
         public async Task PlayCommandAsync(
             [Autocomplete(typeof(MusicAutocompleteHandler))]
-            [Summary("busqueda", "Nombre de la canción o URL de YouTube/Spotify")] string busqueda)
+            [Summary("busqueda", "Nombre de la canción o URL de Deezer/Spotify")] string busqueda)
         {
             await DeferAsync();
 

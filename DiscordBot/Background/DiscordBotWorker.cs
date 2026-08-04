@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.Interactions;
+using Discord.Rest;
 using Discord.WebSocket;
 using DiscordBot.Handler;
 using Microsoft.Extensions.Configuration;
@@ -124,6 +125,29 @@ namespace DiscordBot.Background
                 message += "Contenido no disponible en la caché local.\n";
             }
             message += $"ID del Mensaje: {cachedMessage.Id}\n";
+
+            if (channel is IGuildChannel guildChannel)
+            {
+                try
+                {
+                    var guild = guildChannel.Guild;
+                    var auditLogs = await guild.GetAuditLogsAsync(limit: 5, actionType: ActionType.MessageDeleted);
+                    var auditEntry = auditLogs.FirstOrDefault(x =>
+                        x.Data is MessageDeleteAuditLogData data &&
+                        data.ChannelId == channel.Id &&
+                        (cachedMessage.HasValue ? data.Target.Id == cachedMessage.Value.Author.Id : true));
+
+                    message = auditEntry != null ? 
+                        ($"Eliminador: {auditEntry.User.Username} ({auditEntry.User.Id}) [Moderador]") 
+                        : 
+                        ($"{cachedMessage.Value.Author.Username} (Propio autor)");
+
+                }
+                catch(Exception ex)
+                {
+                    _logger.LogWarning($"No se pudieron consultar los Audit Logs: {ex.Message}");
+                }
+            }
 
             _logger.LogInformation(message);
 
