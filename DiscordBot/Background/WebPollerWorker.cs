@@ -2,6 +2,7 @@
 
 namespace DiscordBot.Background
 {
+    [System.Obsolete("Hasta que se le encuentre una nueva funcionalidad se usara")]
     public class WebPollerWorker : BackgroundService
     {
         private readonly DiscordSocketClient _client;

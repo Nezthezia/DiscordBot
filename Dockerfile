@@ -11,6 +11,8 @@ RUN apt-get update && apt-get install -y && rm -rf /var/lib/apt/lists/*
 COPY . .
 WORKDIR "/src/DiscordBot"
 RUN dotnet publish "DiscordBot.csproj" -c Release -o /app/publish /p:UseAppHost=false
+#Para el VPS
+COPY appsettings*.json /app/publish/
 
 # ---------------------------------------------------
 # Etapa 2: Runtime .NET 10

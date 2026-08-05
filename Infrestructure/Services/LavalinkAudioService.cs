@@ -1,9 +1,13 @@
-﻿using Application.Interfaces;
+﻿using Application.DTOs;
+using Application.Interfaces;
 using Lavalink4NET;
+using Lavalink4NET.Events.Players;
 using Lavalink4NET.Players;
 using Lavalink4NET.Players.Queued;
 using Lavalink4NET.Tracks;
 using Microsoft.Extensions.Options;
+using static System.Net.WebRequestMethods;
+
 using IAudioService = Lavalink4NET.IAudioService;
 
 namespace Infrastructure.Services
@@ -14,6 +18,8 @@ namespace Infrastructure.Services
         private readonly ISpotifyModule _spotify;
         private readonly IDeezerModule _deezer;
 
+        public event Func<TrackInfoDto, ulong, Task>? TrackEnded;
+
         public LavalinkAudioService(
             IAudioService lavalink,
             ISpotifyModule spotify,
@@ -22,23 +28,38 @@ namespace Infrastructure.Services
             _lavalink = lavalink;
             _spotify = spotify;
             _deezer = deezer;
+            _lavalink.TrackEnded += OnLavalinkTrackEndedAsync;
         }
 
-        public async Task PlayAsync(ulong guildId, ulong voiceChannelId, string query)
+        public async Task<TrackInfoDto> PlayAsync(ulong guildId, ulong voiceChannelId, string query)
         {
             var options = new QueuedLavalinkPlayerOptions { DisconnectOnStop = true };
 
             var player = await _lavalink.Players.JoinAsync<QueuedLavalinkPlayer, QueuedLavalinkPlayerOptions>(
                 guildId,
                 voiceChannelId,
-                playerFactory: (context, _) => ValueTask.FromResult(new QueuedLavalinkPlayer(context)),
+                playerFactory: PlayerFactory.Queued,
+                //playerFactory: (context, _) => ValueTask.FromResult(new QueuedLavalinkPlayer(context)),
                 options: Options.Create(options));
 
             var track = await ResolveTrackAsync(query);
 
-            if (track is null) return;
+            if (track is null) return new TrackInfoDto(
+                Autor: "",
+                Title: "",
+                Duration: new TimeSpan(0, 0, 0),
+                IsPlayingNow: false
+                );
 
+            bool isPlaying = (player.CurrentTrack == null);
             await player.PlayAsync(track);
+
+            return new TrackInfoDto(
+                Autor: track.Author,
+                Title: track.Title,
+                Duration: track.Duration,
+                IsPlayingNow: isPlaying
+                );
         }
 
         public async Task SkipAsync(ulong guildId)
@@ -82,10 +103,29 @@ namespace Infrastructure.Services
             return Enumerable.Empty<string>();
         }
 
+        public async Task PauseAsync(ulong guildId)
+        {
+            if (_lavalink.Players.TryGetPlayer<QueuedLavalinkPlayer>(guildId, out var player) && player is not null)
+            {
+                await player.PauseAsync();
+            }
+        }
+
+        public async Task ResumeAsync(ulong guildId) 
+        {
+            if (_lavalink.Players.TryGetPlayer<QueuedLavalinkPlayer>(guildId, out var player) && player is not null)
+            {
+                await player.ResumeAsync();
+            }
+        }
+
         public async Task StopAsync(ulong guildId)
         {
             if (_lavalink.Players.TryGetPlayer<QueuedLavalinkPlayer>(guildId, out var player) && player is not null)
-                await player.DisconnectAsync();
+            {
+                await player.Queue.ClearAsync();
+                await player.StopAsync();
+            }
         }
 
         // ── Helpers privados ─────────────────────────────────────────────────────
@@ -127,6 +167,22 @@ namespace Infrastructure.Services
         {
             return query.Contains("youtube.com", StringComparison.OrdinalIgnoreCase)
                 || query.Contains("youtu.be", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private async Task OnLavalinkTrackEndedAsync(object sender, TrackEndedEventArgs args)
+        {
+            if (TrackEnded is not null && args.Track is not null)
+            {
+                var trackInfo = new TrackInfoDto(
+                    Autor: args.Track.Author,
+                    Title: args.Track.Title,
+                    Duration: args.Track.Duration,
+                    IsPlayingNow: false
+                );
+
+                // Disparamos el evento asíncrono
+                await TrackEnded.Invoke(trackInfo, args.Player.GuildId);
+            }
         }
     }
 }

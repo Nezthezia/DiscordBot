@@ -4,6 +4,7 @@ using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 using DiscordBot.Background;
+using DiscordBot.Services;
 using Infrastructure.Services;
 using Lavalink4NET.Clients;
 using Lavalink4NET.DiscordNet;
@@ -57,8 +58,9 @@ builder.Services.ConfigureLavalink(options =>
 
 builder.Services.AddTransient<IBotCommandService, BotCommandService>();
 builder.Services.AddSingleton<DiscordBot.Handler.DiscordMessageListener>();
+builder.Services.AddSingleton<PlayerUiService>();
 
-builder.Services.AddHostedService<WebPollerWorker>();
+//builder.Services.AddHostedService<WebPollerWorker>();
 
 var app = builder.Build();
 

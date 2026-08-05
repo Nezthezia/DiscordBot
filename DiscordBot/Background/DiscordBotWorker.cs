@@ -1,8 +1,11 @@
-﻿using Discord;
+﻿using Application.Common.Constants;
+using Discord;
 using Discord.Interactions;
 using Discord.Rest;
 using Discord.WebSocket;
+using DiscordBot.Builders;
 using DiscordBot.Handler;
+using DiscordBot.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -18,6 +21,8 @@ namespace DiscordBot.Background
         private readonly InteractionService _interactionService;
         private readonly IServiceProvider _services;
         private readonly DiscordMessageListener _messageListener;
+        private readonly Application.Interfaces.IAudioService _audioService;
+        private readonly PlayerUiService _playerUiService;
 
         // El constructor ahora recibe TODO limpio desde .NET
         public DiscordBotWorker(
@@ -26,7 +31,9 @@ namespace DiscordBot.Background
             IServiceProvider services,
             DiscordSocketClient client,
             InteractionService interactionService,
-            DiscordMessageListener messageListener)
+            DiscordMessageListener messageListener,
+            Application.Interfaces.IAudioService audioService,
+            PlayerUiService playerUiService)
         {
             _configuration = configuration;
             _logger = logger;
@@ -34,6 +41,8 @@ namespace DiscordBot.Background
             _client = client;
             _interactionService = interactionService;
             _messageListener = messageListener;
+            _audioService = audioService;
+            _playerUiService = playerUiService;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -49,6 +58,8 @@ namespace DiscordBot.Background
             _client.InteractionCreated += OnInteractionCreatedAsync;
 
             _client.MessageDeleted += OnMessageDeleted;
+
+            _client.ButtonExecuted += OnButtonExecutedAsync;
 
             // 3. Leer el token desde el appsettings.json
             var token = _configuration["DiscordConfig:Token"];
@@ -137,7 +148,7 @@ namespace DiscordBot.Background
                         data.ChannelId == channel.Id &&
                         (cachedMessage.HasValue ? data.Target.Id == cachedMessage.Value.Author.Id : true));
 
-                    message = auditEntry != null ? 
+                    message += auditEntry != null ? 
                         ($"Eliminador: {auditEntry.User.Username} ({auditEntry.User.Id}) [Moderador]") 
                         : 
                         ($"{cachedMessage.Value.Author.Username} (Propio autor)");
@@ -154,6 +165,45 @@ namespace DiscordBot.Background
             if (_client.GetChannel(channelId) is SocketTextChannel _channel)
             {
                 await _channel.SendMessageAsync(message);
+            }
+        }
+
+        private async Task OnButtonExecutedAsync(SocketMessageComponent component)
+        {
+            ulong guildId = component.GuildId ?? 0;
+            if (guildId == 0) return;
+
+            // Evaluamos contra las constantes estáticas
+            switch (component.Data.CustomId)
+            {
+                case AudioButtonIds.Pause:
+                    await _audioService.PauseAsync(guildId);
+                    var componentesPausado = MusicComponentBuilder.BuildPlayerComponents(isPaused: true);
+                    await component.UpdateAsync(msg =>
+                    {
+                        msg.Components = componentesPausado;
+                    });
+                    break;
+
+                case AudioButtonIds.Resume:
+                    await _audioService.ResumeAsync(guildId);
+                    var componentesResumen = MusicComponentBuilder.BuildPlayerComponents(isPaused: false);
+                    await component.UpdateAsync(msg =>
+                    {
+                        msg.Components = componentesResumen;
+                    });
+                    break;
+
+                case AudioButtonIds.Skip:
+                    await _audioService.SkipAsync(guildId);
+                    await component.RespondAsync("⏭️ Canción saltada.", ephemeral: true);
+                    break;
+
+                case AudioButtonIds.Stop:
+                    _playerUiService.ClearGuild(guildId);
+                    await _audioService.StopAsync(guildId);
+                    await component.RespondAsync("😭 Se acabo la fiesta.", ephemeral: true);
+                    break;
             }
         }
 
