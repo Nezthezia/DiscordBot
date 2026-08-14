@@ -42,6 +42,11 @@ public class BotCommandService : IBotCommandService
             _logger.LogInformation("Enviar foto del joel");
             return Task.FromResult<string?>("https://cdn.discordapp.com/attachments/1536721828679127131/1536918975491866664/Perfil_de_alias_Shadow-Anime.webp?ex=6a7d26d6&is=6a7bd556&hm=a59d7bc1178232d598ffad5e277531372e0b5c3f3b9e31606da8e712637c5a45");
         }
+        else if(content.Equals("ema", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogInformation("Enviar foto del gato naranja llamado ema");
+            return Task.FromResult<string?>("https://klipy.com/gifs/thatscrazydude");
+        }
 
         return Task.FromResult<string?>(null);
     }
