@@ -17,6 +17,10 @@ namespace Application.Interfaces
 
         Task StopAsync(ulong guildId);
 
+        Task LoopAsync(ulong guildId);
+
+        Task NotLoopAsync(ulong guildId);
+
         event Func<TrackInfoDto, ulong, Task>? TrackEnded;
     }
 }

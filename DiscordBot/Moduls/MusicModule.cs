@@ -14,13 +14,11 @@ namespace DiscordBot.Moduls
 
         private readonly IAudioService _audioService;
         private readonly PlayerUiService _playerUiService;
-        private TrackInfoDto trackInfoDto;
 
         public MusicModule(IAudioService audioService, PlayerUiService playerUiService)
         {
             _audioService = audioService;
             _playerUiService = playerUiService;
-            trackInfoDto = new("","",new TimeSpan(0,0,0),false);
         }
 
         [SlashCommand("play", "Busca y reproduce una canción, o la añade a la cola")]
@@ -30,9 +28,7 @@ namespace DiscordBot.Moduls
         {
             await DeferAsync();
 
-            var user = Context.Guild.GetUser(Context.User.Id);
-            var voiceChannel = user?.VoiceChannel;
-
+            var voiceChannel = (Context.Guild.GetUser(Context.User.Id))?.VoiceChannel;
             if (voiceChannel == null)
             {
                 await FollowupAsync("❌ ¡Debes estar en un canal de voz para que pueda cantar para ti!");
@@ -41,31 +37,33 @@ namespace DiscordBot.Moduls
 
             try
             {
-                if(trackInfoDto.Title != "")
-                  await _playerUiService.CleanPreviousPlayerUiAsync(trackInfoDto, Context.Guild.Id);
-
-                trackInfoDto = await _audioService.PlayAsync(Context.Guild.Id, voiceChannel.Id, busqueda);
+                var trackInfoDto = await _audioService.PlayAsync(Context.Guild.Id, voiceChannel.Id, busqueda);
 
                 string avatarUrl = Context.Client.CurrentUser.GetAvatarUrl();
-                Embed embed = MusicEmbedBuilder.BuildPlayerEmbed(trackInfoDto, avatarUrl);
-                MessageComponent components = MusicComponentBuilder.BuildPlayerComponents();
+                var embed = MusicEmbedBuilder.BuildPlayerEmbed(trackInfoDto, avatarUrl);
                 IUserMessage response;
 
                 if (!trackInfoDto.IsPlayingNow)
                 {
                     response = await FollowupAsync(embed: embed);
-                    _playerUiService.EnqueuePendingMessage(Context.Guild.Id, Context.Channel.Id, response.Id);
+                    _playerUiService.EnqueuePendingMessage(
+                        Context.Guild.Id, Context.Channel.Id, response.Id, trackInfoDto);
                 }
                 else
                 {
+                    await _playerUiService.CleanActivePlayerUiAsync(Context.Guild.Id);
+
+                    var components = MusicComponentBuilder.BuildPlayerComponents(
+                        MusicComponentBuilder.GetIsBucle(),
+                        MusicComponentBuilder.GetIsPaused());
                     response = await FollowupAsync(embed: embed, components: components);
-                    _playerUiService.RegisterPlayerMessage(Context.Guild.Id, Context.Channel.Id, response.Id);
+                    _playerUiService.RegisterPlayerMessage(
+                        Context.Guild.Id, Context.Channel.Id, response.Id, trackInfoDto);
                 }
             }
             catch (Exception ex)
             {
-                // Por si algo truena (Lavalink apagado, problemas de red, etc.)
-                await FollowupAsync($"Error al intentar reproducir: {ex.Message}");
+                await FollowupAsync($"❌ Error al intentar reproducir: {ex.Message}");
             }
         }
 
@@ -74,10 +72,7 @@ namespace DiscordBot.Moduls
         {
             await DeferAsync();
 
-            var user = Context.User as IGuildUser;
-            var voiceChannel = user?.VoiceChannel;
-
-            if (voiceChannel == null)
+            if ((Context.User as IGuildUser)?.VoiceChannel == null)
             {
                 await FollowupAsync("❌ Debes estar en un canal de voz para usar este comando.");
                 return;
@@ -85,14 +80,20 @@ namespace DiscordBot.Moduls
 
             try
             {
-                //  Llamamos al método real de la infraestructura
+                await _playerUiService.CleanActivePlayerUiAsync(
+                    Context.Guild.Id,
+                    customTitle: null 
+                );
+
                 await _audioService.SkipAsync(Context.Guild.Id);
 
-                await FollowupAsync("¡Canción saltada con éxito!");
+                await _playerUiService.PromoteAndActivateNextAsync(Context.Guild.Id);
+
+                await FollowupAsync("⏭️ ¡Canción saltada!");
             }
             catch (Exception ex)
             {
-                await FollowupAsync($"Error al intentar saltar la canción: {ex.Message}");
+                await FollowupAsync($"❌ Error al saltar la canción: {ex.Message}");
             }
         }
 
@@ -174,7 +175,9 @@ namespace DiscordBot.Moduls
                 await _audioService.PauseAsync(Context.Guild.Id);
 
                 // Actualiza el componente a estado pausado (isPaused: true)
-                MessageComponent components = MusicComponentBuilder.BuildPlayerComponents(isPaused: true);
+                MessageComponent components = MusicComponentBuilder.BuildPlayerComponents(
+                    MusicComponentBuilder.GetIsBucle(),
+                    isPaused: true);
 
                 await FollowupAsync("⏸️ Reproducción pausada.", components: components);
             }
@@ -201,7 +204,9 @@ namespace DiscordBot.Moduls
                 await _audioService.ResumeAsync(Context.Guild.Id);
 
                 // Actualiza el componente a estado reproduciendo (isPaused: false)
-                MessageComponent components = MusicComponentBuilder.BuildPlayerComponents(isPaused: false);
+                MessageComponent components = MusicComponentBuilder.BuildPlayerComponents(
+                    MusicComponentBuilder.GetIsBucle(),
+                    isPaused: false);
 
                 await FollowupAsync("▶️ Reproducción reanudada.", components: components);
             }
@@ -216,10 +221,7 @@ namespace DiscordBot.Moduls
         {
             await DeferAsync();
 
-            var user = Context.User as IGuildUser;
-            var voiceChannel = user?.VoiceChannel;
-
-            if (voiceChannel == null)
+            if ((Context.User as IGuildUser)?.VoiceChannel == null)
             {
                 await FollowupAsync("❌ Debes estar en un canal de voz para usar este comando.");
                 return;
@@ -227,17 +229,69 @@ namespace DiscordBot.Moduls
 
             try
             {
-
-                await _audioService.StopAsync(Context.Guild.Id);
+                await _playerUiService.CleanActivePlayerUiAsync(
+                    Context.Guild.Id,
+                    customTitle: null 
+                );
                 _playerUiService.ClearGuild(Context.Guild.Id);
+                await _audioService.StopAsync(Context.Guild.Id);
 
-                await FollowupAsync("Deteniendo el bot para reproducir musica");
+                await FollowupAsync("😭 Se acabó la fiesta. ¡Hasta la próxima!");
             }
             catch (Exception ex)
             {
-                await FollowupAsync($"Error al intentar detener la reproduccion: {ex.Message}");
+                await FollowupAsync($"❌ Error al detener la reproducción: {ex.Message}");
             }
         }
 
+
+        [SlashCommand("loop", "Hacer que una cancion se repita en bucle")]
+        public async Task LoopCommandAsync()
+        {
+            await DeferAsync();
+
+            if ((Context.User as IGuildUser)?.VoiceChannel == null)
+            {
+                await FollowupAsync("❌ Debes estar en un canal de voz para usar este comando.");
+                return;
+            }
+
+            try
+            {
+                await _audioService.LoopAsync(Context.Guild.Id);
+                await _playerUiService.UpdateLoopUiAsync(Context.Guild.Id, isBucle: true);
+
+                await FollowupAsync("🔄 Música en bucle");
+            }
+            catch(Exception ex)
+            {
+                await FollowupAsync($"❌ Error al detener la reproducción: {ex.Message}");
+            }
+        }
+
+
+        [SlashCommand("unloop", "Desactivar la repetición en bucle")]
+        public async Task UnloopCommandAsync()
+        {
+            await DeferAsync();
+
+            if ((Context.User as IGuildUser)?.VoiceChannel == null)
+            {
+                await FollowupAsync("❌ Debes estar en un canal de voz para usar este comando.");
+                return;
+            }
+
+            try
+            {
+                await _audioService.NotLoopAsync(Context.Guild.Id);
+                await _playerUiService.UpdateLoopUiAsync(Context.Guild.Id, isBucle: false);
+
+                await FollowupAsync("▶️ Bucle desactivado.");
+            }
+            catch (Exception ex)
+            {
+                await FollowupAsync($"❌ Error al detener la reproducción: {ex.Message}");
+            }
+        }
     }
 }

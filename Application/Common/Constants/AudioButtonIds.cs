@@ -13,5 +13,7 @@ namespace Application.Common.Constants
         public const string AutoPlay = "music_autoplay";
         public const string Dashboard = "music_dashboard";
         public const string Like = "music_like";
+        public const string Loop = "music_loop";
+        public const string NotLoop = "music_Notloop";
     }
 }

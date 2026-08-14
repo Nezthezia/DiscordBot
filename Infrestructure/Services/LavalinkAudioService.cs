@@ -4,6 +4,7 @@ using Lavalink4NET;
 using Lavalink4NET.Events.Players;
 using Lavalink4NET.Players;
 using Lavalink4NET.Players.Queued;
+using Lavalink4NET.Protocol.Payloads.Events;
 using Lavalink4NET.Tracks;
 using Microsoft.Extensions.Options;
 using static System.Net.WebRequestMethods;
@@ -171,18 +172,39 @@ namespace Infrastructure.Services
 
         private async Task OnLavalinkTrackEndedAsync(object sender, TrackEndedEventArgs args)
         {
-            if (TrackEnded is not null && args.Track is not null)
-            {
-                var trackInfo = new TrackInfoDto(
-                    Autor: args.Track.Author,
-                    Title: args.Track.Title,
-                    Duration: args.Track.Duration,
-                    IsPlayingNow: false
-                );
+            if (args.Reason is not TrackEndReason.Finished)
+                return;
 
-                // Disparamos el evento asíncrono
-                await TrackEnded.Invoke(trackInfo, args.Player.GuildId);
+            if (TrackEnded is null || args.Track is null)
+                return;
+
+            var trackInfo = new TrackInfoDto(
+                Autor: args.Track.Author,
+                Title: args.Track.Title,
+                Duration: args.Track.Duration,
+                IsPlayingNow: false
+            );
+
+            await TrackEnded.Invoke(trackInfo, args.Player.GuildId);
+        }
+
+        public async Task LoopAsync(ulong guildId)
+        {
+            if (_lavalink.Players.TryGetPlayer<QueuedLavalinkPlayer>(guildId, out var player) && player is not null)
+            {
+                player.RepeatMode = TrackRepeatMode.Track;
             }
+            await Task.CompletedTask;
+        }
+
+        public async Task NotLoopAsync(ulong guildId)
+        {
+            if (_lavalink.Players.TryGetPlayer<QueuedLavalinkPlayer>(guildId, out var player) && player is not null)
+            {
+                player.RepeatMode = TrackRepeatMode.None;
+            }
+
+            await Task.CompletedTask;
         }
     }
 }

@@ -57,7 +57,7 @@ namespace DiscordBot.Background
 
             _client.InteractionCreated += OnInteractionCreatedAsync;
 
-            _client.MessageDeleted += OnMessageDeleted;
+            //_client.MessageDeleted += OnMessageDeleted;
 
             _client.ButtonExecuted += OnButtonExecutedAsync;
 
@@ -111,7 +111,7 @@ namespace DiscordBot.Background
             }
         }
 
-        private async Task OnMessageDeleted(Cacheable<IMessage, ulong> cachedMessage,
+        /*private async Task OnMessageDeleted(Cacheable<IMessage, ulong> cachedMessage,
     Cacheable<IMessageChannel, ulong> cachedChannel)
         {
             var channel = await cachedChannel.GetOrDownloadAsync();
@@ -167,7 +167,7 @@ namespace DiscordBot.Background
                 await _channel.SendMessageAsync(message);
             }
         }
-
+        */
         private async Task OnButtonExecutedAsync(SocketMessageComponent component)
         {
             ulong guildId = component.GuildId ?? 0;
@@ -178,7 +178,9 @@ namespace DiscordBot.Background
             {
                 case AudioButtonIds.Pause:
                     await _audioService.PauseAsync(guildId);
-                    var componentesPausado = MusicComponentBuilder.BuildPlayerComponents(isPaused: true);
+                    var componentesPausado = MusicComponentBuilder.BuildPlayerComponents(
+                        MusicComponentBuilder.GetIsBucle(),
+                        isPaused: true);
                     await component.UpdateAsync(msg =>
                     {
                         msg.Components = componentesPausado;
@@ -187,23 +189,81 @@ namespace DiscordBot.Background
 
                 case AudioButtonIds.Resume:
                     await _audioService.ResumeAsync(guildId);
-                    var componentesResumen = MusicComponentBuilder.BuildPlayerComponents(isPaused: false);
+                    var componentesResumen = MusicComponentBuilder.BuildPlayerComponents(
+                        MusicComponentBuilder.GetIsBucle(), 
+                        isPaused: false);
                     await component.UpdateAsync(msg =>
                     {
                         msg.Components = componentesResumen;
                     });
                     break;
 
-                case AudioButtonIds.Skip:
-                    await _audioService.SkipAsync(guildId);
-                    await component.RespondAsync("⏭️ Canción saltada.", ephemeral: true);
+                case AudioButtonIds.Loop:
+                    await _audioService.NotLoopAsync(guildId);
+                    var componentesBucle = MusicComponentBuilder.BuildPlayerComponents(
+                        isBucle: false,
+                        MusicComponentBuilder.GetIsPaused());
+                    await component.UpdateAsync(msg =>
+                    {
+                        msg.Components = componentesBucle;
+                    });
                     break;
 
-                case AudioButtonIds.Stop:
-                    _playerUiService.ClearGuild(guildId);
-                    await _audioService.StopAsync(guildId);
-                    await component.RespondAsync("😭 Se acabo la fiesta.", ephemeral: true);
+                case AudioButtonIds.NotLoop:
+                    await _audioService.LoopAsync(guildId);
+                    var componentesNoBucle = MusicComponentBuilder.BuildPlayerComponents(
+                        isBucle: true,
+                        MusicComponentBuilder.GetIsPaused());
+                    await component.UpdateAsync(msg =>
+                    {
+                        msg.Components = componentesNoBucle;
+                    });
                     break;
+
+                case AudioButtonIds.Skip:
+                    {
+                        var track = _playerUiService.GetCurrentTrack(guildId);
+                        _playerUiService.RemoveActiveMessage(guildId);
+                        await component.UpdateAsync(msg =>
+                        {
+                            msg.Content = string.Empty;
+                            msg.Components = new ComponentBuilder().Build(); 
+                            msg.Embed = track is not null
+                                ? new EmbedBuilder()
+                                    .WithColor(new Color(0x7F00FF))
+                                    .WithTitle($"⏭️ Saltada: {track?.Title} — {track?.Autor}")
+                                    .Build()
+                                : new EmbedBuilder()
+                                    .WithColor(new Color(0x7F00FF))
+                                    .WithTitle("⏭️ Canción saltada")
+                                    .Build();
+                        });
+                        await _audioService.SkipAsync(guildId);
+                        await _playerUiService.PromoteAndActivateNextAsync(guildId);
+                        break;
+                    }
+
+                case AudioButtonIds.Stop:
+                    {
+                        var track = _playerUiService.GetCurrentTrack(guildId);
+                        _playerUiService.ClearGuild(guildId);
+                        await component.UpdateAsync(msg =>
+                        {
+                            msg.Content = string.Empty;
+                            msg.Components = new ComponentBuilder().Build();
+                            msg.Embed = track is not null
+                                ? new EmbedBuilder()
+                                    .WithColor(new Color(0x7F00FF))
+                                    .WithTitle($"😭 Se acabó: {track?.Title} — {track?.Autor}")
+                                    .Build()
+                                : new EmbedBuilder()
+                                    .WithColor(new Color(0x7F00FF))
+                                    .WithTitle("😭 Se acabó la fiesta")
+                                    .Build();
+                        });
+                        await _audioService.StopAsync(guildId);
+                        break;
+                    }
             }
         }
 
