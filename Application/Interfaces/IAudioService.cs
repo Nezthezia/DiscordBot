@@ -21,6 +21,23 @@ namespace Application.Interfaces
 
         Task NotLoopAsync(ulong guildId);
 
+        Task ClearListAsync(ulong guildId);
+
+        Task<TrackInfoDto?> RemoveMusicAsync(ulong guildId, int position);
+
+        Task<IReadOnlyList<TrackInfoDto>> GetQueueTracksAsync(ulong guildId);
+
+        Task ShuffleTracksAsync(ulong guildId);
+
+        Task VolumeAsync(ulong guildId, int volumen);
+
+        Task SeekTrackAsync(ulong guildId, TimeSpan time);
+
+        Task<bool> PreviousTrackAsync(ulong guildId);
+
+        Task<TrackInfoDto?> MoveTrackAsync(ulong guildId, int position, int newPosition);
+
         event Func<TrackInfoDto, ulong, Task>? TrackEnded;
+        event Func<TrackInfoDto, ulong, Task>? TrackStarted;
     }
 }

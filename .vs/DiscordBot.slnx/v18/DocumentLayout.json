@@ -3,16 +3,24 @@
   "WorkspaceRootPath": "C:\\Users\\gatob\\source\\repos\\DiscordBot\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{F80C4E72-27A0-12B5-0634-DD5C11CFB0C1}|Application\\Application.csproj|c:\\users\\gatob\\source\\repos\\discordbot\\application\\services\\botcommandservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{F80C4E72-27A0-12B5-0634-DD5C11CFB0C1}|Application\\Application.csproj|solutionrelative:application\\services\\botcommandservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{100C09B3-E58F-6B6B-3AA6-D66188F478A2}|DiscordBot\\DiscordBot.csproj|c:\\users\\gatob\\source\\repos\\discordbot\\discordbot\\builders\\musicembedbuilder.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{100C09B3-E58F-6B6B-3AA6-D66188F478A2}|DiscordBot\\DiscordBot.csproj|solutionrelative:discordbot\\builders\\musicembedbuilder.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{F80C4E72-27A0-12B5-0634-DD5C11CFB0C1}|Application\\Application.csproj|c:\\users\\gatob\\source\\repos\\discordbot\\application\\interfaces\\ibotcommandservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{F80C4E72-27A0-12B5-0634-DD5C11CFB0C1}|Application\\Application.csproj|solutionrelative:application\\interfaces\\ibotcommandservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{100C09B3-E58F-6B6B-3AA6-D66188F478A2}|DiscordBot\\DiscordBot.csproj|c:\\users\\gatob\\source\\repos\\discordbot\\discordbot\\moduls\\musicmodule.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{100C09B3-E58F-6B6B-3AA6-D66188F478A2}|DiscordBot\\DiscordBot.csproj|solutionrelative:discordbot\\moduls\\musicmodule.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{100C09B3-E58F-6B6B-3AA6-D66188F478A2}|DiscordBot\\DiscordBot.csproj|c:\\users\\gatob\\source\\repos\\discordbot\\discordbot\\background\\discordbotworker.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{100C09B3-E58F-6B6B-3AA6-D66188F478A2}|DiscordBot\\DiscordBot.csproj|solutionrelative:discordbot\\background\\discordbotworker.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{100C09B3-E58F-6B6B-3AA6-D66188F478A2}|DiscordBot\\DiscordBot.csproj|c:\\users\\gatob\\source\\repos\\discordbot\\discordbot\\services\\playeruiservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{100C09B3-E58F-6B6B-3AA6-D66188F478A2}|DiscordBot\\DiscordBot.csproj|solutionrelative:discordbot\\services\\playeruiservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{223E19B0-DE40-BBE9-644C-89D093555741}|Infrestructure\\Infrestructure.csproj|c:\\users\\gatob\\source\\repos\\discordbot\\infrestructure\\services\\lavalinkaudioservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{223E19B0-DE40-BBE9-644C-89D093555741}|Infrestructure\\Infrestructure.csproj|solutionrelative:infrestructure\\services\\lavalinkaudioservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{F80C4E72-27A0-12B5-0634-DD5C11CFB0C1}|Application\\Application.csproj|c:\\users\\gatob\\source\\repos\\discordbot\\application\\interfaces\\iaudioservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{F80C4E72-27A0-12B5-0634-DD5C11CFB0C1}|Application\\Application.csproj|solutionrelative:application\\interfaces\\iaudioservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -22,7 +30,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 2,
+          "SelectedChildIndex": 1,
           "Children": [
             {
               "$type": "Bookmark",
@@ -30,41 +38,64 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "IBotCommandService.cs",
-              "DocumentMoniker": "C:\\Users\\gatob\\source\\repos\\DiscordBot\\Application\\Interfaces\\IBotCommandService.cs",
-              "RelativeDocumentMoniker": "Application\\Interfaces\\IBotCommandService.cs",
-              "ToolTip": "C:\\Users\\gatob\\source\\repos\\DiscordBot\\Application\\Interfaces\\IBotCommandService.cs",
-              "RelativeToolTip": "Application\\Interfaces\\IBotCommandService.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAEAAAAhAAAAAAAAAA==",
+              "DocumentIndex": 0,
+              "Title": "MusicEmbedBuilder.cs",
+              "DocumentMoniker": "C:\\Users\\gatob\\source\\repos\\DiscordBot\\DiscordBot\\Builders\\MusicEmbedBuilder.cs",
+              "RelativeDocumentMoniker": "DiscordBot\\Builders\\MusicEmbedBuilder.cs",
+              "ToolTip": "C:\\Users\\gatob\\source\\repos\\DiscordBot\\DiscordBot\\Builders\\MusicEmbedBuilder.cs",
+              "RelativeToolTip": "DiscordBot\\Builders\\MusicEmbedBuilder.cs",
+              "ViewState": "AgIAAAgAAAAAAAAAAAAuwA8AAAA8AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-08-14T20:57:35.59Z",
+              "WhenOpened": "2026-08-17T21:16:49.677Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "BotCommandService.cs",
-              "DocumentMoniker": "C:\\Users\\gatob\\source\\repos\\DiscordBot\\Application\\Services\\BotCommandService.cs",
-              "RelativeDocumentMoniker": "Application\\Services\\BotCommandService.cs",
-              "ToolTip": "C:\\Users\\gatob\\source\\repos\\DiscordBot\\Application\\Services\\BotCommandService.cs",
-              "RelativeToolTip": "Application\\Services\\BotCommandService.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAFAAAAAAAAAA==",
+              "DocumentIndex": 4,
+              "Title": "IAudioService.cs",
+              "DocumentMoniker": "C:\\Users\\gatob\\source\\repos\\DiscordBot\\Application\\Interfaces\\IAudioService.cs",
+              "RelativeDocumentMoniker": "Application\\Interfaces\\IAudioService.cs",
+              "ToolTip": "C:\\Users\\gatob\\source\\repos\\DiscordBot\\Application\\Interfaces\\IAudioService.cs",
+              "RelativeToolTip": "Application\\Interfaces\\IAudioService.cs",
+              "ViewState": "AgIAABYAAAAAAAAAAADwvyUAAAAaAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-08-14T19:45:18.226Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-08-17T18:35:08.344Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 2,
-              "Title": "DiscordBotWorker.cs",
-              "DocumentMoniker": "C:\\Users\\gatob\\source\\repos\\DiscordBot\\DiscordBot\\Background\\DiscordBotWorker.cs",
-              "RelativeDocumentMoniker": "DiscordBot\\Background\\DiscordBotWorker.cs",
-              "ToolTip": "C:\\Users\\gatob\\source\\repos\\DiscordBot\\DiscordBot\\Background\\DiscordBotWorker.cs",
-              "RelativeToolTip": "DiscordBot\\Background\\DiscordBotWorker.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAMkAAAA0AAAAAAAAAA==",
+              "Title": "PlayerUiService.cs",
+              "DocumentMoniker": "C:\\Users\\gatob\\source\\repos\\DiscordBot\\DiscordBot\\Services\\PlayerUiService.cs",
+              "RelativeDocumentMoniker": "DiscordBot\\Services\\PlayerUiService.cs",
+              "ToolTip": "C:\\Users\\gatob\\source\\repos\\DiscordBot\\DiscordBot\\Services\\PlayerUiService.cs",
+              "RelativeToolTip": "DiscordBot\\Services\\PlayerUiService.cs",
+              "ViewState": "AgIAAO4AAAAAAAAAAAAiwP8AAAAxAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-08-14T03:56:59.466Z",
+              "WhenOpened": "2026-08-17T16:43:55.788Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "LavalinkAudioService.cs",
+              "DocumentMoniker": "C:\\Users\\gatob\\source\\repos\\DiscordBot\\Infrestructure\\Services\\LavalinkAudioService.cs",
+              "RelativeDocumentMoniker": "Infrestructure\\Services\\LavalinkAudioService.cs",
+              "ToolTip": "C:\\Users\\gatob\\source\\repos\\DiscordBot\\Infrestructure\\Services\\LavalinkAudioService.cs",
+              "RelativeToolTip": "Infrestructure\\Services\\LavalinkAudioService.cs",
+              "ViewState": "AgIAACgBAAAAxnHNE+EqwKoBAAAYAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-16T04:34:24.072Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "MusicModule.cs",
+              "DocumentMoniker": "C:\\Users\\gatob\\source\\repos\\DiscordBot\\DiscordBot\\Moduls\\MusicModule.cs",
+              "RelativeDocumentMoniker": "DiscordBot\\Moduls\\MusicModule.cs",
+              "ToolTip": "C:\\Users\\gatob\\source\\repos\\DiscordBot\\DiscordBot\\Moduls\\MusicModule.cs",
+              "RelativeToolTip": "DiscordBot\\Moduls\\MusicModule.cs",
+              "ViewState": "AgIAAMEBAAAAAAAAAAAwwNIBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-17T17:07:23.362Z",
               "EditorCaption": ""
             }
           ]

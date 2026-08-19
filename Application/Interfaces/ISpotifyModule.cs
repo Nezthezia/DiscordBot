@@ -16,7 +16,7 @@ namespace Application.Interfaces
         /// <summary>
         /// Resuelve una URL de Spotify a un LavalinkTrack reproducible.
         /// </summary>
-        Task<LavalinkTrack?> ResolveAsync(string spotifyUrl);
+        Task<IReadOnlyList<LavalinkTrack>?> ResolveAsync(string spotifyUrl);
 
         /// <summary>
         /// Busca canciones en Spotify por texto. Devuelve hasta <paramref name="limit"/> resultados.

@@ -16,7 +16,7 @@ namespace Application.Interfaces
         /// <summary>
         /// Resuelve una URL de Deezer a un LavalinkTrack reproducible.
         /// </summary>
-        Task<LavalinkTrack?> ResolveAsync(string deezerUrl);
+        Task<IReadOnlyList<LavalinkTrack>?> ResolveAsync(string deezerUrl);
 
         /// <summary>
         /// Busca canciones en Deezer por texto. Devuelve hasta <paramref name="limit"/> resultados.

@@ -239,7 +239,7 @@ namespace DiscordBot.Background
                                     .Build();
                         });
                         await _audioService.SkipAsync(guildId);
-                        await _playerUiService.PromoteAndActivateNextAsync(guildId);
+                        //await _playerUiService.PromoteAndActivateNextAsync(guildId);
                         break;
                     }
 

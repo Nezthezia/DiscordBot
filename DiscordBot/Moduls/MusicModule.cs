@@ -38,6 +38,7 @@ namespace DiscordBot.Moduls
             try
             {
                 var trackInfoDto = await _audioService.PlayAsync(Context.Guild.Id, voiceChannel.Id, busqueda);
+                _playerUiService.SetGuildChannel(Context.Guild.Id, Context.Channel.Id);
 
                 string avatarUrl = Context.Client.CurrentUser.GetAvatarUrl();
                 var embed = MusicEmbedBuilder.BuildPlayerEmbed(trackInfoDto, avatarUrl);
@@ -46,7 +47,7 @@ namespace DiscordBot.Moduls
                 if (!trackInfoDto.IsPlayingNow)
                 {
                     response = await FollowupAsync(embed: embed);
-                    _playerUiService.EnqueuePendingMessage(
+                    _playerUiService.RegisterPlayerMessage(
                         Context.Guild.Id, Context.Channel.Id, response.Id, trackInfoDto);
                 }
                 else
@@ -87,7 +88,7 @@ namespace DiscordBot.Moduls
 
                 await _audioService.SkipAsync(Context.Guild.Id);
 
-                await _playerUiService.PromoteAndActivateNextAsync(Context.Guild.Id);
+                //await _playerUiService.PromoteAndActivateNextAsync(Context.Guild.Id);
 
                 await FollowupAsync("⏭️ ¡Canción saltada!");
             }
@@ -293,5 +294,191 @@ namespace DiscordBot.Moduls
                 await FollowupAsync($"❌ Error al detener la reproducción: {ex.Message}");
             }
         }
+
+        [SlashCommand("clear", "Limpiar lista de canciones")]
+        public async Task ClearCommandAsync()
+        {
+            await DeferAsync();
+
+            if ((Context.User as IGuildUser)?.VoiceChannel == null)
+            {
+                await FollowupAsync("❌ Debes estar en un canal de voz para usar este comando.");
+                return;
+            }
+
+            try
+            {
+                await _audioService.ClearListAsync(Context.Guild.Id);
+                await _playerUiService.ClearQueueUiAsync(Context.Guild.Id);
+
+                await FollowupAsync("✅ lista limpia.");
+            }
+            catch (Exception ex)
+            {
+                await FollowupAsync($"❌ Error al limpiar la lista de musica: {ex.Message}");
+            }
+        }
+
+        [SlashCommand("remove", "Elimina una cancion de la lista")]
+        public async Task RemoveCommandAsync(
+            [Autocomplete(typeof(MusicRemoveHandler))]
+            [Summary("Indice", "Nombre de la canción a eliminar")] int posicion)
+        {
+            await DeferAsync();
+
+            if ((Context.User as IGuildUser)?.VoiceChannel == null)
+            {
+                await FollowupAsync("❌ Debes estar en un canal de voz para usar este comando.");
+                return;
+            }
+
+            try
+            {
+                var music = await _audioService.RemoveMusicAsync(Context.Guild.Id, posicion);
+                var embed = await _playerUiService.RemoveMusicUIAsync(music, posicion);
+
+                await FollowupAsync(embed: embed);
+            }
+            catch (Exception ex)
+            {
+                await FollowupAsync($"❌ Error al eliminar un elemento de la lista de musica: {ex.Message}");
+            }
+        }
+
+        [SlashCommand("shuffle", "Reordena la musica de manera aleatoria")]
+        public async Task ShuffleCommandAsync()
+        {
+            await DeferAsync();
+
+            if ((Context.User as IGuildUser)?.VoiceChannel == null)
+            {
+                await FollowupAsync("❌ Debes estar en un canal de voz para usar este comando.");
+                return;
+            }
+
+            try
+            {
+                await _audioService.ShuffleTracksAsync(Context.Guild.Id);
+                var embed = await _playerUiService.ShuffleUiAsync();
+
+                await FollowupAsync(embed: embed);
+            }
+            catch (Exception ex)
+            {
+                await FollowupAsync($"❌ Error al modificar la musica de manera aleatoria: {ex.Message}");
+            }
+        }
+
+        [SlashCommand("volume", "Sube el volumen del reproductor")]
+        public async Task VolumeCommandAsync(
+        [Summary("porcentaje", "Nivel de volumen de 0 a 100")]
+        [MinValue(0), MaxValue(100)] int volumen)
+        {
+            await DeferAsync();
+
+            if ((Context.User as IGuildUser)?.VoiceChannel == null)
+            {
+                await FollowupAsync("❌ Debes estar en un canal de voz para usar este comando.");
+                return;
+            }
+
+            try
+            {
+                await _audioService.VolumeAsync(Context.Guild.Id, volumen);
+                var embed = await _playerUiService.VolumeUiAsync(volumen);
+
+                await FollowupAsync(embed: embed);
+            }
+            catch (Exception ex)
+            {
+                await FollowupAsync($"❌ Error al modificar el volumen: {ex.Message}");
+            }
+        }
+
+        [SlashCommand("seek", "Adelanta o atrasa la canción actual a un tiempo específico")]
+        public async Task SeekCommandAsync(
+        [Summary("minutos", "Minutos a los que deseas saltar")][MinValue(0)] int minutos = 0,
+        [Summary("segundos", "Segundos a los que deseas saltar")][MinValue(0), MaxValue(59)] int segundos = 0)
+        {
+            await DeferAsync();
+
+            if ((Context.User as IGuildUser)?.VoiceChannel == null)
+            {
+                await FollowupAsync("❌ Debes estar en un canal de voz para usar este comando.");
+                return;
+            }
+
+            try
+            {
+                var targetTime = new TimeSpan(0, 0, minutos, segundos);
+
+                await _audioService.SeekTrackAsync(Context.Guild.Id, targetTime);
+
+                var embed = await _playerUiService.SeekUiAsync(Context.Guild.Id, targetTime);
+
+                await FollowupAsync(embed: embed);
+            }
+            catch (Exception ex)
+            {
+                await FollowupAsync($"❌ Error al colocar la posicion en la cancion: {ex.Message}");
+            }
+        }
+
+
+        [SlashCommand("previous", "Vuelve a la canción anterior o reinicia la actual")]
+        public async Task PreviousCommandAsync()
+        {
+            await DeferAsync();
+
+            if ((Context.User as IGuildUser)?.VoiceChannel == null)
+            {
+                await FollowupAsync("❌ Debes estar en un canal de voz para usar este comando.");
+                return;
+            }
+
+            try
+            {
+
+                bool success = await _audioService.PreviousTrackAsync(Context.Guild.Id);
+
+                var embed = await _playerUiService.PreviousUiAsync(success);
+
+                await FollowupAsync(embed: embed);
+            }
+            catch (Exception ex)
+            {
+                await FollowupAsync($"❌ Error al regresar a la anterior cancion: {ex.Message}");
+            }
+        }
+
+        [SlashCommand("move", "Mueve una canción a otra posición dentro de la lista de espera")]
+        public async Task MoveCommandAsync(
+        [Autocomplete(typeof(MusicRemoveHandler))]
+        [Summary("origen", "Posición actual de la canción en la cola")] [MinValue(1)] int origen,
+        [Summary("destino", "Nueva posición a la que deseas moverla")][MinValue(1)] int destino)
+        {
+            await DeferAsync();
+
+            if ((Context.User as IGuildUser)?.VoiceChannel == null)
+            {
+                await FollowupAsync("❌ Debes estar en un canal de voz para usar este comando.");
+                return;
+            }
+
+            try
+            {
+
+                var track = await _audioService.MoveTrackAsync(Context.Guild.Id, origen, destino);
+
+                var embed = await _playerUiService.MoveTrackUiAsync(track, origen, destino);
+
+                await FollowupAsync(embed: embed);
+            }
+            catch (Exception ex)
+            {
+                await FollowupAsync($"❌ Error al mover la cancion de posicion: {ex.Message}");
+            }
+        }
+
     }
 }

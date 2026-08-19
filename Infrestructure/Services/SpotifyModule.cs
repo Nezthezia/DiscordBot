@@ -28,11 +28,18 @@ namespace Infrastructure.Services
             || query.StartsWith("spotify:", StringComparison.OrdinalIgnoreCase); // URIs tipo spotify:track:xxx
 
         /// <inheritdoc/>
-        public async Task<LavalinkTrack?> ResolveAsync(string spotifyUrl)
+        public async Task<IReadOnlyList<LavalinkTrack>?> ResolveAsync(string spotifyUrl)
         {
             // LavaSrc intercepta la URL de Spotify y la resuelve directamente.
             // TrackSearchMode.None le indica a Lavalink que la query ya es una URL.
-            return await _lavalink.Tracks.LoadTrackAsync(spotifyUrl, TrackSearchMode.None);
+            var result = await _lavalink.Tracks.LoadTracksAsync(spotifyUrl, TrackSearchMode.None);
+            if (result.IsPlaylist)
+            {
+                return [.. result.Tracks];
+            }
+            var track = result.Tracks.FirstOrDefault();
+            if (track is null) return null;
+            return [track];
         }
 
         /// <inheritdoc/>

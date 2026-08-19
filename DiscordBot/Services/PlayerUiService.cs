@@ -11,68 +11,42 @@ namespace DiscordBot.Services
     {
         private readonly DiscordSocketClient _client;
 
-        // ── Estructura interna ──────────────────────────────────────────────
-        // Guarda channelId, messageId Y el track que se está reproduciendo.
-        // Al tener el track aquí ya no hay que pasarlo desde fuera.
         private record PlayerMessageInfo(ulong ChannelId, ulong MessageId, TrackInfoDto Track);
 
-        // Mensaje activo (reproduciéndose ahora) por guild
+        // Mensaje activo actual con botones por guild
         private readonly ConcurrentDictionary<ulong, PlayerMessageInfo> _activeMessages = new();
 
-        // Cola de mensajes pendientes (canciones en espera) por guild
-        // ConcurrentQueue es thread-safe sin necesidad de locks manuales
-        private readonly ConcurrentDictionary<ulong, ConcurrentQueue<PlayerMessageInfo>> _pendingMessages = new();
+        // Canal guardado por servidor para enviar las tarjetas nuevas cuando avance la cola
+        private readonly ConcurrentDictionary<ulong, ulong> _guildChannels = new();
 
         public PlayerUiService(DiscordSocketClient client, IAudioService audioService)
         {
             _client = client;
             audioService.TrackEnded += OnTrackEndedAsync;
+            audioService.TrackStarted += OnTrackStartedAsync; // Escuchamos el inicio automático de cada track
         }
 
-        // ── Registro ────────────────────────────────────────────────────────
+        // ── Registro de canal y mensaje ─────────────────────────────────────
 
-        /// <summary>Registra el mensaje activo del player (canción reproduciéndose).</summary>
+        public void SetGuildChannel(ulong guildId, ulong channelId)
+            => _guildChannels[guildId] = channelId;
+
         public void RegisterPlayerMessage(ulong guildId, ulong channelId, ulong messageId, TrackInfoDto track)
         {
             _activeMessages[guildId] = new PlayerMessageInfo(channelId, messageId, track);
+            _guildChannels[guildId] = channelId;
         }
 
-        /// <summary>Encola un mensaje pendiente (canción en la cola de espera).</summary>
-        public void EnqueuePendingMessage(ulong guildId, ulong channelId, ulong messageId, TrackInfoDto track)
-        {
-            var queue = _pendingMessages.GetOrAdd(guildId, _ => new ConcurrentQueue<PlayerMessageInfo>());
-            queue.Enqueue(new PlayerMessageInfo(channelId, messageId, track));
-        }
-
-        /// <summary>
-        /// Devuelve el track del mensaje activo sin removerlo del diccionario.
-        /// Útil para los botones que necesitan construir el embed antes de hacer UpdateAsync.
-        /// </summary>
         public TrackInfoDto? GetCurrentTrack(ulong guildId) =>
             _activeMessages.TryGetValue(guildId, out var info) ? info.Track : null;
 
-        /// <summary>
-        /// Solo remueve el entry del diccionario sin modificar el mensaje de Discord.
-        /// Úsalo cuando ya actualizaste el mensaje por otro medio (p.ej. component.UpdateAsync).
-        /// </summary>
         public bool RemoveActiveMessage(ulong guildId) =>
             _activeMessages.TryRemove(guildId, out _);
 
-        // ── Limpieza del player activo ───────────────────────────────────────
+        // ── Desactivar tarjeta anterior (quita botones) ──────────────────────
 
-        /// <summary>
-        /// Remueve el mensaje activo del tracking Y lo modifica en Discord:
-        /// elimina los botones y actualiza el embed al estado "terminado/saltado/detenido".
-        ///
-        /// Patrón TryRemove: solo el PRIMER llamador gana el lock atómico;
-        /// llamadas subsecuentes (ej. OnTrackEndedAsync después de un Skip manual)
-        /// son no-op automáticamente → sin condiciones de carrera.
-        /// </summary>
-        /// <param name="guildId">Id del servidor.</param>
-        /// <param name="customTitle">Título opcional para el embed final. Si es null usa el título del track.</param>
         public async Task<bool> CleanActivePlayerUiAsync(ulong guildId, string? customTitle = null)
         {
-            // TryRemove es atómico: si falla, alguien más ya limpió → no-op seguro
             if (!_activeMessages.TryRemove(guildId, out var info))
                 return false;
 
@@ -87,8 +61,7 @@ namespace DiscordBot.Services
 
                 await message.ModifyAsync(msg =>
                 {
-                    // ComponentBuilder vacío = elimina todos los botones
-                    msg.Components = new ComponentBuilder().Build();
+                    msg.Components = new ComponentBuilder().Build(); // Quita botones
                     msg.Embed = new EmbedBuilder()
                         .WithColor(new Color(0x7F00FF))
                         .WithTitle(title)
@@ -99,121 +72,191 @@ namespace DiscordBot.Services
             }
             catch
             {
-                // El mensaje fue eliminado, el canal no existe, permisos, etc.
-                // No propagamos: es un estado esperado (usuario borró el mensaje).
                 return false;
             }
         }
 
-        // ── Promoción de la cola ─────────────────────────────────────────────
+        // ── Evento: Track Iniciado (Se dispara en CADA canción de Playlist o Cola) ──
 
-        /// <summary>
-        /// Saca el primer mensaje pendiente, lo convierte en activo y actualiza su
-        /// embed + botones para mostrar el player completo.
-        /// Si no hay pendientes, no hace nada (no hay fuga de recursos).
-        /// </summary>
-        public async Task PromoteAndActivateNextAsync(ulong guildId)
+        private async Task OnTrackStartedAsync(TrackInfoDto trackInfo, ulong guildId)
         {
-            if (!_pendingMessages.TryGetValue(guildId, out var queue)) return;
-            if (!queue.TryDequeue(out var next)) return;
+            // Evitamos duplicar si /play ya envió y registró esta misma canción al inicio
+            if (_activeMessages.TryGetValue(guildId, out var active) && active.Track.Title == trackInfo.Title)
+                return;
 
-            // Primero registrar como activo, luego modificar Discord
-            _activeMessages[guildId] = next;
+            if (!_guildChannels.TryGetValue(guildId, out ulong channelId)) return;
 
             try
             {
-                if (await _client.GetChannelAsync(next.ChannelId) is not IMessageChannel channel) return;
-                if (await channel.GetMessageAsync(next.MessageId) is not IUserMessage message) return;
+                if (await _client.GetChannelAsync(channelId) is not IMessageChannel channel) return;
 
                 string avatarUrl = _client.CurrentUser.GetAvatarUrl();
-                var embed = MusicEmbedBuilder.BuildPlayerEmbed(next.Track, avatarUrl);
+                var trackNow = trackInfo with { IsPlayingNow = true };
+
+                var embed = MusicEmbedBuilder.BuildPlayerEmbed(trackNow, avatarUrl);
                 var components = MusicComponentBuilder.BuildPlayerComponents(
                     MusicComponentBuilder.GetIsBucle(),
                     MusicComponentBuilder.GetIsPaused());
 
-                await message.ModifyAsync(msg =>
-                {
-                    msg.Embed = embed;
-                    msg.Components = components;
-                    msg.Content = string.Empty; // limpia cualquier texto anterior
-                });
+                // Se envía SIEMPRE un mensaje NUEVO cuando arranca una nueva pista
+                var message = await channel.SendMessageAsync(embed: embed, components: components);
+
+                _activeMessages[guildId] = new PlayerMessageInfo(channelId, message.Id, trackNow);
             }
-            catch
+            catch (Exception ex)
             {
-                // Si el mensaje ya no existe, lo sacamos del tracking también
-                _activeMessages.TryRemove(guildId, out _);
+                Console.WriteLine($"[PlayerUiService] Error enviando tarjeta: {ex.Message}");
             }
         }
 
-        // ── Evento de fin de track (llamado por el audio service) ────────────
+        // ── Evento: Track Terminado ──────────────────────────────────────────
 
-        /// <summary>
-        /// Maneja el fin natural de una canción:
-        ///   1. Limpia el player activo (no-op si ya fue limpiado por Skip/Stop).
-        ///   2. Promueve el siguiente pendiente (si existe).
-        /// </summary>
         public async Task OnTrackEndedAsync(TrackInfoDto trackInfoDto, ulong guildId)
         {
-            // Si fue skip/stop manual, TryRemove ya falló y esto es no-op
+            // Limpia la tarjeta que acaba de terminar (quita botones)
             await CleanActivePlayerUiAsync(
                 guildId,
                 $"It's over {trackInfoDto.Title} of {trackInfoDto.Autor}"
             );
-
-            // Siempre intentamos promover el siguiente, sea cual sea la razón del fin
-            await PromoteAndActivateNextAsync(guildId);
+            // OnTrackStartedAsync se encargará de crear la nueva tarjeta automáticamente cuando Lavalink inicie la siguiente
         }
 
-        // ── Limpieza total del guild ─────────────────────────────────────────
+        // ── Limpieza total ──────────────────────────────────────────────────
 
-        /// <summary>
-        /// Elimina TODOS los datos de tracking del guild (activo + pendientes).
-        /// No modifica mensajes de Discord — úsalo después de haber actualizado la UI.
-        /// Previene fugas de memoria cuando el bot se desconecta o se ejecuta /stop.
-        /// </summary>
         public void ClearGuild(ulong guildId)
         {
             _activeMessages.TryRemove(guildId, out _);
-            _pendingMessages.TryRemove(guildId, out _);
+            _guildChannels.TryRemove(guildId, out _);
         }
-
-
 
         // ── Control de Bucle (Loop) ───────────────────────────────────────────
 
-        /// <summary>
-        /// Actualiza los componentes del mensaje activo para reflejar el estado del bucle.
-        /// </summary>
-        /// <param name="guildId">Id del servidor.</param>
-        /// <param name="isBucle">Indica si el bucle debe estar activado o desactivado.</param>
         public async Task UpdateLoopUiAsync(ulong guildId, bool isBucle)
         {
-            // Verificamos si existe un mensaje activo para esta guild
-            if (!_activeMessages.TryGetValue(guildId, out var info))
-                return;
+            if (!_activeMessages.TryGetValue(guildId, out var info)) return;
 
             try
             {
-                if (await _client.GetChannelAsync(info.ChannelId) is not IMessageChannel channel)
-                    return;
+                if (await _client.GetChannelAsync(info.ChannelId) is not IMessageChannel channel) return;
+                if (await channel.GetMessageAsync(info.MessageId) is not IUserMessage message) return;
 
-                if (await channel.GetMessageAsync(info.MessageId) is not IUserMessage message)
-                    return;
-
-                // Construimos los componentes según el estado del bucle
                 var nuevosComponentes = MusicComponentBuilder.BuildPlayerComponents(
                     isBucle: isBucle,
                     MusicComponentBuilder.GetIsPaused());
 
-                await message.ModifyAsync(msg =>
-                {
-                    msg.Components = nuevosComponentes;
-                });
+                await message.ModifyAsync(msg => msg.Components = nuevosComponentes);
             }
-            catch
+            catch { }
+        }
+
+        public async Task ClearQueueUiAsync(ulong guildId)
+        {
+            await CleanActivePlayerUiAsync(guildId, "🧹 Se ha limpiado la lista de reproducción");
+        }
+
+        public async Task<Embed> RemoveMusicUIAsync(TrackInfoDto? removedTrack, int position)
+        {
+            if (removedTrack == null)
             {
-                // Ignoramos si el mensaje o canal fue eliminado por el usuario
+                return MusicEmbedBuilder.BuildTrackNotFoundEmbed(position);
             }
+
+            return MusicEmbedBuilder.BuildTrackRemovedEmbed(removedTrack, position);
+        }
+
+        public async Task<Embed> ShuffleUiAsync()
+        {
+            return MusicEmbedBuilder.BuildShuffleEmbed();
+        }
+
+        public async Task<Embed> VolumeUiAsync(int volume)
+        {
+            return MusicEmbedBuilder.BuildVolumeEmbed(volume);
+        }
+
+        public async Task<Embed> SeekUiAsync(ulong guildId, TimeSpan position)
+        {
+            var currentTrack = GetCurrentTrack(guildId);
+
+            if (currentTrack is null)
+            {
+                return new EmbedBuilder()
+                    .WithColor(new Color(0xE74C3C))
+                    .WithTitle("❌ Sin reproducción")
+                    .WithDescription("No hay ninguna canción sonando en este momento.")
+                    .Build();
+            }
+
+            // Validación: si el tiempo supera la duración de la canción
+            if (position > currentTrack?.Duration)
+            {
+                string? duracionFormateada = currentTrack?.Duration.TotalHours >= 1
+                    ? currentTrack?.Duration.ToString(@"hh\:mm\:ss")
+                    : currentTrack?.Duration.ToString(@"mm\:ss");
+
+                return new EmbedBuilder()
+                    .WithColor(new Color(0xE74C3C))
+                    .WithTitle("⚠️ Tiempo fuera de rango")
+                    .WithDescription($"Saltando a la siguiente cancion.")
+                    .Build();
+            }
+
+            string tiempoFormateado = position.TotalHours >= 1
+                ? position.ToString(@"hh\:mm\:ss")
+                : position.ToString(@"mm\:ss");
+
+            return new EmbedBuilder()
+                .WithColor(new Color(0x3498DB))
+                .WithTitle("⏩ Posición Actualizada")
+                .WithDescription($"Se movió la reproducción a **{tiempoFormateado}**.")
+                .AddField("🎵 Canción", currentTrack?.Title, inline: true)
+                .WithFooter("Control de Audio • Bot de Música")
+                .WithCurrentTimestamp()
+                .Build();
+        }
+
+
+        public async Task<Embed> PreviousUiAsync(bool success)
+        {
+
+            if (!success)
+            {
+                return new EmbedBuilder()
+                    .WithColor(new Color(0xE74C3C))
+                    .WithTitle("❌ Sin historial")
+                    .WithDescription("No hay canciones anteriores a las cuales regresar.")
+                    .Build();
+            }
+
+            return new EmbedBuilder()
+                .WithColor(new Color(0x3498DB))
+                .WithTitle("⏮️ Regresando pista")
+                .WithDescription("Se ha reiniciado la canción o regresado a la pista anterior.")
+                .WithFooter("Control de Audio • Bot de Música")
+                .WithCurrentTimestamp()
+                .Build();
+        }
+
+        public async Task<Embed> MoveTrackUiAsync(TrackInfoDto? movedTrack, int position, int newPosition)
+        {
+
+            if (movedTrack is null)
+            {
+                return new EmbedBuilder()
+                    .WithColor(new Color(0xE74C3C)) // Rojo error
+                    .WithTitle("❌ Posición inválida")
+                    .WithDescription($"No se pudo mover la canción. Verifica que las posiciones **#{position}** y **#{newPosition}** existan en la cola.")
+                    .Build();
+            }
+
+            return new EmbedBuilder()
+                .WithColor(new Color(0x3498DB)) // Azul
+                .WithTitle("↔️ Canción Movida")
+                .WithDescription($"Se movió **{movedTrack?.Title}** de la posición **#{position}** a la **#{newPosition}**.")
+                .AddField("👤 Autor", movedTrack?.Autor, inline: true)
+                .WithFooter("Gestión de Cola • Bot de Música")
+                .WithCurrentTimestamp()
+                .Build();
         }
 
 

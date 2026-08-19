@@ -28,11 +28,19 @@ namespace Infrastructure.Services
             || query.Contains("deezer.page.link", StringComparison.OrdinalIgnoreCase); // links cortos de Deezer
 
         /// <inheritdoc/>
-        public async Task<LavalinkTrack?> ResolveAsync(string deezerUrl)
+        public async Task<IReadOnlyList<LavalinkTrack>?> ResolveAsync(string deezerUrl)
         {
             // LavaSrc intercepta la URL de Deezer y la resuelve directamente.
             // TrackSearchMode.None le indica a Lavalink que la query ya es una URL.
-            return await _lavalink.Tracks.LoadTrackAsync(deezerUrl, TrackSearchMode.None);
+            var result = await _lavalink.Tracks.LoadTracksAsync(deezerUrl, TrackSearchMode.None);
+
+            if (result.IsPlaylist)
+            {
+                return [.. result.Tracks];
+            }
+            var track = result.Tracks.FirstOrDefault();
+            if (track is null) return null;
+            return [track];
         }
 
         /// <inheritdoc/>
