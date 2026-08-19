@@ -38,6 +38,6 @@ namespace Application.Interfaces
         Task<TrackInfoDto?> MoveTrackAsync(ulong guildId, int position, int newPosition);
 
         event Func<TrackInfoDto, ulong, Task>? TrackEnded;
-        event Func<TrackInfoDto, ulong, Task>? TrackStarted;
+        event Func<TrackInfoDto, ulong, Task>? TrackStarted; 
     }
 }

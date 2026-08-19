@@ -1,28 +1,73 @@
 ﻿using Application.DTOs;
 using Discord;
 using System.Collections;
+using System.Text;
 
 namespace DiscordBot.Builders
 {
     public static class MusicEmbedBuilder
     {
+        private static string GenerarBarraProgreso(TimeSpan current, TimeSpan total, int length = 20)
+        {
+            // Si no hay duración (ej. un stream en vivo o error), mostramos el botón al inicio
+            if (total <= TimeSpan.Zero)
+                return "🔘" + new string('▬', length - 1);
+
+            // Calculamos el porcentaje de progreso (de 0.0 a 1.0)
+            double progress = Math.Clamp(current.TotalMilliseconds / total.TotalMilliseconds, 0.0, 1.0);
+
+            // Determinamos en qué posición del string debe ir el círculo
+            int position = (int)Math.Round(progress * (length - 1));
+
+            var sb = new StringBuilder();
+            for (int i = 0; i < length; i++)
+            {
+                // 🔘 para la bolita del slider, ▬ para la línea continua
+                sb.Append(i == position ? "🔘" : "▬");
+            }
+
+            return sb.ToString();
+        }
+
         public static Embed BuildPlayerEmbed(TrackInfoDto track, string? avatarUrl = null)
         {
-            //string progressBar = GenerarBarraProgreso(track.Position, track.Duration);
-            string msgPlaying = !track.IsPlayingNow ? "added" : "Now playing";
-            return new EmbedBuilder()
+            string msgPlaying = !track.IsPlayingNow ? "Added to queue" : "Now playing";
+            string progressBar = !track.IsPlayingNow ? string.Empty : GenerarBarraProgreso(track.Position, track.Duration);
+
+            // Formato para minutos y horas
+            string formattedCurrent = track.Position.TotalHours >= 1
+                ? track.Position.ToString(@"hh\:mm\:ss")
+                : track.Position.ToString(@"m\:ss");
+
+            string formattedTotal = track.Duration.TotalHours >= 1
+                ? track.Duration.ToString(@"hh\:mm\:ss")
+                : track.Duration.ToString(@"m\:ss");
+
+            string formatted = !track.IsPlayingNow ? $"Duration: {formattedTotal}" : 
+                $"`{formattedCurrent}`" + new string(' ', 28) + $"`{formattedTotal}`";
+
+            var description = new StringBuilder()
+                //.AppendLine($"• Added by {track.RequestedByMention}")
+                //.AppendLine($"• 🔊 **{track.ChannelName}**")
+                .AppendLine()
+                //.AppendLine($"Queue Size: `{track.QueueSize}` · Volume: `{track.Volume}%` · Loop: `{track.LoopMode}`")
+                .AppendLine()
+                .AppendLine(progressBar)
+                .AppendLine(formatted);
+
+            var builder = new EmbedBuilder()
                 .WithColor(new Color(0x7F00FF)) // Morado
                 .WithAuthor(msgPlaying, avatarUrl)
                 .WithTitle($"{track.Autor} - {track.Title}")
-                .WithDescription($"Duration: {track.Duration}")
-                //.WithUrl(track.Uri)
-                //.WithThumbnailUrl(track.ArtworkUri)
-                //.WithDescription($"• Added by {track.RequestedByMention}\n• 🔊 `{track.ChannelName}`")
-                //.AddField("Queue Size", track.QueueSize.ToString(), inline: true)
-                //.AddField("Volume", $"{track.Volume}%", inline: true)
-                //.AddField("Loop", track.LoopMode, inline: true)
-                //.AddField("\u200B", $"{progressBar}\n`{track.Position:mm\\:ss} / {track.Duration:mm\\:ss}`")
-                .Build();
+                .WithDescription(description.ToString());
+
+            /*if (!string.IsNullOrEmpty(track.Uri))
+                builder.WithUrl(track.Uri);
+
+            if (!string.IsNullOrEmpty(track.ArtworkUri))
+                builder.WithThumbnailUrl(track.ArtworkUri);*/
+
+            return builder.Build();
         }
 
         public static Embed BuildListPlayerEmbed(List<string>? musics, string? avatarUrl = null)

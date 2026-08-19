@@ -37,8 +37,10 @@ namespace DiscordBot.Moduls
 
             try
             {
-                var trackInfoDto = await _audioService.PlayAsync(Context.Guild.Id, voiceChannel.Id, busqueda);
+                _playerUiService.MarkCommandHandlingPlay(Context.Guild.Id);
                 _playerUiService.SetGuildChannel(Context.Guild.Id, Context.Channel.Id);
+                var trackInfoDto = await _audioService.PlayAsync(Context.Guild.Id, voiceChannel.Id, busqueda);
+
 
                 string avatarUrl = Context.Client.CurrentUser.GetAvatarUrl();
                 var embed = MusicEmbedBuilder.BuildPlayerEmbed(trackInfoDto, avatarUrl);
@@ -47,8 +49,8 @@ namespace DiscordBot.Moduls
                 if (!trackInfoDto.IsPlayingNow)
                 {
                     response = await FollowupAsync(embed: embed);
-                    _playerUiService.RegisterPlayerMessage(
-                        Context.Guild.Id, Context.Channel.Id, response.Id, trackInfoDto);
+                    //_playerUiService.RegisterPlayerMessage(
+                    // Context.Guild.Id, Context.Channel.Id, response.Id, trackInfoDto);
                 }
                 else
                 {
@@ -60,11 +62,17 @@ namespace DiscordBot.Moduls
                     response = await FollowupAsync(embed: embed, components: components);
                     _playerUiService.RegisterPlayerMessage(
                         Context.Guild.Id, Context.Channel.Id, response.Id, trackInfoDto);
+
+                    _playerUiService.StartPlayerUpdater(Context.Guild.Id);
                 }
             }
             catch (Exception ex)
             {
                 await FollowupAsync($"❌ Error al intentar reproducir: {ex.Message}");
+            }
+            finally
+            {
+                _playerUiService.ClearCommandHandlingPlay(Context.Guild.Id);
             }
         }
 
@@ -236,6 +244,7 @@ namespace DiscordBot.Moduls
                 );
                 _playerUiService.ClearGuild(Context.Guild.Id);
                 await _audioService.StopAsync(Context.Guild.Id);
+                _playerUiService.ClearCommandHandlingPlay(Context.Guild.Id);
 
                 await FollowupAsync("😭 Se acabó la fiesta. ¡Hasta la próxima!");
             }

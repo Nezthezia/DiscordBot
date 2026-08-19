@@ -19,11 +19,17 @@ namespace DiscordBot.Services
         // Canal guardado por servidor para enviar las tarjetas nuevas cuando avance la cola
         private readonly ConcurrentDictionary<ulong, ulong> _guildChannels = new();
 
-        public PlayerUiService(DiscordSocketClient client, IAudioService audioService)
+        private readonly ConcurrentDictionary<ulong, CancellationTokenSource> _updaterTokens = new();
+
+
+        private readonly ILogger<PlayerUiService> _logger;
+
+        public PlayerUiService(DiscordSocketClient client, IAudioService audioService, ILogger<PlayerUiService> logger)
         {
             _client = client;
             audioService.TrackEnded += OnTrackEndedAsync;
             audioService.TrackStarted += OnTrackStartedAsync; // Escuchamos el inicio automático de cada track
+            _logger = logger;
         }
 
         // ── Registro de canal y mensaje ─────────────────────────────────────
@@ -57,6 +63,8 @@ namespace DiscordBot.Services
                 if (await channel.GetMessageAsync(info.MessageId) is not IUserMessage message)
                     return false;
 
+                StopPlayerUpdater(guildId);
+
                 string title = customTitle ?? $"⏹️ {info.Track.Title} — {info.Track.Autor}";
 
                 await message.ModifyAsync(msg =>
@@ -80,6 +88,12 @@ namespace DiscordBot.Services
 
         private async Task OnTrackStartedAsync(TrackInfoDto trackInfo, ulong guildId)
         {
+
+            if (_commandHandlingPlay.ContainsKey(guildId))
+                return;
+
+            if (!_guildChannels.TryGetValue(guildId, out ulong _)) return;
+
             // Evitamos duplicar si /play ya envió y registró esta misma canción al inicio
             if (_activeMessages.TryGetValue(guildId, out var active) && active.Track.Title == trackInfo.Title)
                 return;
@@ -102,10 +116,12 @@ namespace DiscordBot.Services
                 var message = await channel.SendMessageAsync(embed: embed, components: components);
 
                 _activeMessages[guildId] = new PlayerMessageInfo(channelId, message.Id, trackNow);
+
+                StartPlayerUpdater(guildId);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[PlayerUiService] Error enviando tarjeta: {ex.Message}");
+                _logger.LogInformation($"[PlayerUiService] Error enviando tarjeta: {ex.Message}");
             }
         }
 
@@ -259,7 +275,81 @@ namespace DiscordBot.Services
                 .Build();
         }
 
+        public void StopPlayerUpdater(ulong guildId)
+        {
+            if (_updaterTokens.TryRemove(guildId, out var cts))
+            {
+                cts.Cancel();
+                cts.Dispose();
+            }
+        }
 
+        // Elimina el parámetro IUserMessage — ya no hace falta
+        public void StartPlayerUpdater(ulong guildId)
+        {
+            StopPlayerUpdater(guildId);
+
+            var cts = new CancellationTokenSource();
+            _updaterTokens[guildId] = cts;
+
+            _ = Task.Run(async () =>
+            {
+                var interval = TimeSpan.FromSeconds(10);
+                using var timer = new PeriodicTimer(interval);
+
+                try
+                {
+                    while (await timer.WaitForNextTickAsync(cts.Token))
+                    {
+                        if (!_activeMessages.TryGetValue(guildId, out var activePlayer))
+                            continue;
+
+                        var track = activePlayer.Track;
+                        if (!track.IsPlayingNow)
+                            continue;
+
+                        var newPosition = track.Position + interval;
+                        if (newPosition > track.Duration)
+                            newPosition = track.Duration;
+
+                        var updatedTrack = track with { Position = newPosition };
+
+                        // Actualizamos el estado interno
+                        _activeMessages[guildId] = activePlayer with { Track = updatedTrack };
+
+                        // Buscamos el mensaje FRESCO cada tick — sin referencias stale
+                        try
+                        {
+                            if (await _client.GetChannelAsync(activePlayer.ChannelId) is not IMessageChannel channel)
+                                continue;
+                            if (await channel.GetMessageAsync(activePlayer.MessageId) is not IUserMessage message)
+                                continue;
+
+                            var updatedEmbed = MusicEmbedBuilder.BuildPlayerEmbed(
+                                updatedTrack, _client.CurrentUser.GetAvatarUrl());
+
+                            await message.ModifyAsync(msg => msg.Embed = updatedEmbed);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "[Updater] Error editando mensaje en guild {GuildId}", guildId);
+                        }
+                    }
+                }
+                catch (OperationCanceledException) { }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[Updater] Error en el loop de guild {GuildId}", guildId);
+                }
+            }, cts.Token);
+        }
+
+        private readonly ConcurrentDictionary<ulong, byte> _commandHandlingPlay = new();
+        public void MarkCommandHandlingPlay(ulong guildId)
+    => _commandHandlingPlay[guildId] = 1;
+
+        public void ClearCommandHandlingPlay(ulong guildId)
+            => _commandHandlingPlay.TryRemove(guildId, out _);
 
     }
 }

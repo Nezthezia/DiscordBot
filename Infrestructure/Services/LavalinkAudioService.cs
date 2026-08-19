@@ -27,6 +27,8 @@ namespace Infrastructure.Services
 
         private readonly ConcurrentDictionary<ulong, Stack<LavalinkTrack>> _history = new();
         private readonly ConcurrentDictionary<ulong, bool> _isRevertingHistory = new();
+        private readonly ConcurrentDictionary<ulong, CancellationTokenSource> _updateCancellations = new();
+
 
         public LavalinkAudioService(
             IAudioService lavalink,
@@ -61,6 +63,7 @@ namespace Infrastructure.Services
                 Autor: "",
                 Title: "",
                 Duration: new TimeSpan(0, 0, 0),
+                Position: new TimeSpan(0,0,0),
                 IsPlayingNow: false
                 );
 
@@ -81,11 +84,11 @@ namespace Infrastructure.Services
                     await player.Queue.AddAsync(new TrackQueueItem(tracks[i]));
             }
 
-
             return new TrackInfoDto(
                 Autor: track.Author,
                 Title: track.Title,
                 Duration: track.Duration,
+                Position: TimeSpan.Zero,
                 IsPlayingNow: !isPlaying
                 );
         }
@@ -198,6 +201,7 @@ namespace Infrastructure.Services
 
         private async Task OnLavalinkTrackEndedAsync(object sender, TrackEndedEventArgs args)
         {
+
             if (args.Track is not null &&
                 (!_isRevertingHistory.TryGetValue(args.Player.GuildId, out var isReverting) || !isReverting))
             {
@@ -218,11 +222,13 @@ namespace Infrastructure.Services
                 Autor: args.Track.Author,
                 Title: args.Track.Title,
                 Duration: args.Track.Duration,
+                Position: args.Track.Duration,
                 IsPlayingNow: false
             );
 
             await TrackEnded.Invoke(trackInfo, args.Player.GuildId);
         }
+
 
         private async Task OnLavalinkTrackStartedAsync(object sender, TrackStartedEventArgs args)
         {
@@ -233,8 +239,10 @@ namespace Infrastructure.Services
                 Autor: args.Track.Author,
                 Title: args.Track.Title,
                 Duration: args.Track.Duration,
+                Position: TimeSpan.Zero,
                 IsPlayingNow: true
             );
+            
 
             await TrackStarted.Invoke(trackInfo, args.Player.GuildId);
         }
@@ -285,6 +293,7 @@ namespace Infrastructure.Services
                             Autor: track.Author,
                             Title: track.Title,
                             Duration: track.Duration,
+                            Position: TimeSpan.Zero,
                             IsPlayingNow: false
                         );
                     }
@@ -305,6 +314,7 @@ namespace Infrastructure.Services
                         Autor: t.Author,
                         Title: t.Title,
                         Duration: t.Duration,
+                        Position: TimeSpan.Zero,
                         IsPlayingNow: false
                     ))
                     .ToList();
@@ -418,6 +428,7 @@ namespace Infrastructure.Services
                             Autor: track.Author,
                             Title: track.Title,
                             Duration: track.Duration,
+                            Position: TimeSpan.Zero,
                             IsPlayingNow: false
                         );
                     }
