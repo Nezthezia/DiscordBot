@@ -7,7 +7,7 @@ namespace Application.Interfaces
     {
         Task<TrackInfoDto> PlayAsync(ulong guildId, ulong voiceChannelId, string query);
         Task SkipAsync(ulong guildId);
-        Task<IEnumerable<string>> GetQueueAsync(ulong guildId);
+        Task<IEnumerable<TrackInfoDto>> GetQueueAsync(ulong guildId);
 
         Task<IEnumerable<LavalinkTrack>> SearchTracksAsync(string query);
 

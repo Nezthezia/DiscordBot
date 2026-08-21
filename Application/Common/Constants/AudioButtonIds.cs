@@ -15,5 +15,6 @@ namespace Application.Common.Constants
         public const string Like = "music_like";
         public const string Loop = "music_loop";
         public const string NotLoop = "music_Notloop";
+        public const string QueuePage = "queue_page";
     }
 }

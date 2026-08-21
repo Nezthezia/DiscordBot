@@ -53,6 +53,8 @@ namespace DiscordBot.Services
 
         public async Task<bool> CleanActivePlayerUiAsync(ulong guildId, string? customTitle = null)
         {
+            MusicComponentBuilder.SetIsBucle(false);
+            MusicComponentBuilder.SetIsPaused(false);
             if (!_activeMessages.TryRemove(guildId, out var info))
                 return false;
 
@@ -130,6 +132,8 @@ namespace DiscordBot.Services
         public async Task OnTrackEndedAsync(TrackInfoDto trackInfoDto, ulong guildId)
         {
             // Limpia la tarjeta que acaba de terminar (quita botones)
+            MusicComponentBuilder.SetIsBucle(false);
+            MusicComponentBuilder.SetIsPaused(false);
             await CleanActivePlayerUiAsync(
                 guildId,
                 $"It's over {trackInfoDto.Title} of {trackInfoDto.Autor}"
@@ -167,6 +171,8 @@ namespace DiscordBot.Services
 
         public async Task ClearQueueUiAsync(ulong guildId)
         {
+            MusicComponentBuilder.SetIsBucle(false);
+            MusicComponentBuilder.SetIsPaused(false);
             await CleanActivePlayerUiAsync(guildId, "🧹 Se ha limpiado la lista de reproducción");
         }
 
@@ -234,7 +240,8 @@ namespace DiscordBot.Services
 
         public async Task<Embed> PreviousUiAsync(bool success)
         {
-
+            MusicComponentBuilder.SetIsBucle(false);
+            MusicComponentBuilder.SetIsPaused(false);
             if (!success)
             {
                 return new EmbedBuilder()
@@ -277,6 +284,8 @@ namespace DiscordBot.Services
 
         public void StopPlayerUpdater(ulong guildId)
         {
+            MusicComponentBuilder.SetIsBucle(false);
+            MusicComponentBuilder.SetIsPaused(false);
             if (_updaterTokens.TryRemove(guildId, out var cts))
             {
                 cts.Cancel();
@@ -287,6 +296,8 @@ namespace DiscordBot.Services
         // Elimina el parámetro IUserMessage — ya no hace falta
         public void StartPlayerUpdater(ulong guildId)
         {
+            MusicComponentBuilder.SetIsBucle(false);
+            MusicComponentBuilder.SetIsPaused(false);
             StopPlayerUpdater(guildId);
 
             var cts = new CancellationTokenSource();

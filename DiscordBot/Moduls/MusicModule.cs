@@ -1,4 +1,5 @@
-﻿using Application.DTOs;
+﻿using Application.Common.Constants;
+using Application.DTOs;
 using Application.Interfaces;
 using Discord;
 using Discord.Interactions;
@@ -6,6 +7,7 @@ using DiscordBot.Builders;
 using DiscordBot.Handler;
 using DiscordBot.Services;
 using Infrastructure.Services;
+using System.Diagnostics;
 
 namespace DiscordBot.Moduls
 {
@@ -40,7 +42,11 @@ namespace DiscordBot.Moduls
                 _playerUiService.MarkCommandHandlingPlay(Context.Guild.Id);
                 _playerUiService.SetGuildChannel(Context.Guild.Id, Context.Channel.Id);
                 var trackInfoDto = await _audioService.PlayAsync(Context.Guild.Id, voiceChannel.Id, busqueda);
-
+                trackInfoDto = trackInfoDto with
+                {
+                    ChannelName = Context.Channel.Name,
+                    RequestedByMention = Context.User.Mention
+                };
 
                 string avatarUrl = Context.Client.CurrentUser.GetAvatarUrl();
                 var embed = MusicEmbedBuilder.BuildPlayerEmbed(trackInfoDto, avatarUrl);
@@ -122,13 +128,15 @@ namespace DiscordBot.Moduls
 
             try
             {
-                IEnumerable<string> colaStrings = await _audioService.GetQueueAsync(Context.Guild.Id);
+                IEnumerable<TrackInfoDto> colaStrings = await _audioService.GetQueueAsync(Context.Guild.Id);
                 var lista = colaStrings.ToList();
                 string avatarUrl = Context.Client.CurrentUser.GetAvatarUrl();
+                int totalPages = (int)Math.Ceiling((double)lista.Count - 1 / 10);
 
-                var embed = MusicEmbedBuilder.BuildListPlayerEmbed(lista, avatarUrl);
+                var embeds = MusicEmbedBuilder.BuildListPlayerEmbed(musics: lista, avatarUrl: avatarUrl);
+                var components = MusicComponentBuilder.BuildQueueComponents(1, totalPages);
 
-                await FollowupAsync(embed: embed);
+                await FollowupAsync(embeds: embeds, components: components);
 
                 /*if (lista.Count == 0)
                 {
@@ -166,6 +174,33 @@ namespace DiscordBot.Moduls
                 await FollowupAsync($"Error al intentar obtener la lista de reproducción: {ex.Message}");
             }
         }
+
+        /*
+         AUXILIAR DEL LIST
+         */
+
+        [ComponentInteraction($"{AudioButtonIds.QueuePage}:*")]
+        public async Task HandleQueuePageAsync(string targetPageStr)
+        {
+            await DeferAsync();
+            if (!int.TryParse(targetPageStr, out int targetPage)) return;
+
+            IEnumerable<TrackInfoDto> colaStrings = await _audioService.GetQueueAsync(Context.Guild.Id);
+            var lista = colaStrings.ToList();
+
+            int queueCount = Math.Max(0, lista.Count - 1);
+            int totalPages = Math.Max(1, (int)Math.Ceiling((double)queueCount / 10));
+
+            var embeds = MusicEmbedBuilder.BuildListPlayerEmbed(lista, page: targetPage, pageSize: 10, Context.Client.CurrentUser.GetAvatarUrl());
+            var components = MusicComponentBuilder.BuildQueueComponents(currentPage: targetPage, totalPages);
+
+            await ModifyOriginalResponseAsync(msg =>
+            {
+                msg.Embeds = embeds;
+                msg.Components = components;
+            });
+        }
+
 
         [SlashCommand("pause", "Pausa la reproducción actual de música")]
         public async Task PauseCommandAsync()

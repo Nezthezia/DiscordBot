@@ -1,6 +1,8 @@
 ﻿using Application.DTOs;
 using Discord;
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Collections;
+using System.Diagnostics;
 using System.Text;
 
 namespace DiscordBot.Builders
@@ -46,11 +48,18 @@ namespace DiscordBot.Builders
             string formatted = !track.IsPlayingNow ? $"Duration: {formattedTotal}" : 
                 $"`{formattedCurrent}`" + new string(' ', 28) + $"`{formattedTotal}`";
 
+            string loopMode = MusicComponentBuilder.GetIsBucle() ? "On" : "Off";
+
+            track = track with
+            {
+                LoopMode = loopMode
+            };
+
             var description = new StringBuilder()
-                //.AppendLine($"• Added by {track.RequestedByMention}")
-                //.AppendLine($"• 🔊 **{track.ChannelName}**")
+                .AppendLine($"• Added by {track.RequestedByMention}")
+                .AppendLine($"• 🔊 **{track.ChannelName}**")
                 .AppendLine()
-                //.AppendLine($"Queue Size: `{track.QueueSize}` · Volume: `{track.Volume}%` · Loop: `{track.LoopMode}`")
+                .AppendLine($"Queue Size: `{track.QueueSize}` · Volume: `{track.Volume}%` · Loop: `{loopMode}`")
                 .AppendLine()
                 .AppendLine(progressBar)
                 .AppendLine(formatted);
@@ -61,44 +70,103 @@ namespace DiscordBot.Builders
                 .WithTitle($"{track.Autor} - {track.Title}")
                 .WithDescription(description.ToString());
 
-            /*if (!string.IsNullOrEmpty(track.Uri))
+            if (!string.IsNullOrEmpty(track.Uri))
                 builder.WithUrl(track.Uri);
 
             if (!string.IsNullOrEmpty(track.ArtworkUri))
-                builder.WithThumbnailUrl(track.ArtworkUri);*/
+                builder.WithThumbnailUrl(track.ArtworkUri);
 
             return builder.Build();
         }
 
-        public static Embed BuildListPlayerEmbed(List<string>? musics, string? avatarUrl = null)
+        public static Embed[] BuildListPlayerEmbed(List<TrackInfoDto>? musics, int page = 1, int pageSize = 10, string? avatarUrl = null)
         {
             if(musics!.Count == 0)
             {
-                return new EmbedBuilder().WithColor(new Color(0x7F00FF))
-                .WithAuthor("Lista", avatarUrl)
-                .WithTitle("Sin reproducciones")
-                .Build();
+                return
+                [
+                    new EmbedBuilder()
+                        .WithAuthor("Lista", avatarUrl)
+                        .WithTitle("Sin reproducciones")
+                        .WithColor(Color.Purple)
+                        .Build()
+                ];
             }
 
-            if(musics!.Count == 1)
+            var currentTrack = musics[0];
+
+            if (musics!.Count == 1)
             {
-                return new EmbedBuilder().WithColor(new Color(0x7F00FF))
-                .WithAuthor("Lista", avatarUrl)
-                .WithTitle($"{musics[0]}.")
-                .Build();
+                string currentDurationStr = currentTrack.Duration.TotalHours >= 1
+                ? currentTrack.Duration.ToString(@"hh\:mm\:ss")
+                : currentTrack.Duration.ToString(@"mm\:ss");
+
+                var singleEmbed = new EmbedBuilder()
+                    .WithTitle("Now playing")
+                    .WithDescription($"**{currentTrack.Autor} - {currentTrack.Title}** - `{currentDurationStr}`\n\n Requested by {currentTrack.RequestedByMention}")
+                    .WithColor(new Color(114, 137, 218));
+
+                if (!string.IsNullOrWhiteSpace(currentTrack.ArtworkUri))
+                    singleEmbed.WithThumbnailUrl(currentTrack.ArtworkUri);
+
+                return 
+                    [
+                    singleEmbed.Build() 
+                ];
             }
 
-            string msg = ""; 
+            var queueTracks = musics.Skip(1).ToList();
+            int totalTracks = queueTracks.Count;
+            TimeSpan totalDuration = TimeSpan.FromMilliseconds(queueTracks.Sum(t => t.Duration.TotalMilliseconds));
 
-            for (int i = 1; i < musics.Count; i++)
+            int totalPages = Math.Max(1, (int)Math.Ceiling((double)totalTracks / pageSize));
+            page = Math.Clamp(page, 1, totalPages);
+
+            string nowPlayingDuration = currentTrack.Duration.TotalHours >= 1
+                ? currentTrack.Duration.ToString(@"hh\:mm\:ss")
+                : currentTrack.Duration.ToString(@"mm\:ss");
+
+            var nowPlayingEmbed = new EmbedBuilder()
+                .WithTitle("Now playing")
+                .WithDescription($"**{currentTrack.Autor} - {currentTrack.Title}** - `{nowPlayingDuration}`\n\n Requested by {currentTrack.RequestedByMention}")
+                .WithColor(new Color(114, 137, 218));
+
+            if (!string.IsNullOrWhiteSpace(currentTrack.ArtworkUri))
+                nowPlayingEmbed.WithThumbnailUrl(currentTrack.ArtworkUri);
+
+            int startIndex = (page - 1) * pageSize;
+            var pageTracks = queueTracks.Skip(startIndex).Take(pageSize).ToList();
+
+            var sb = new StringBuilder();
+            for (int i = 0; i < pageTracks.Count; i++)
             {
-                msg += $"{musics[i]}.\n"; 
+                var track = pageTracks[i];
+                int trackNumber = startIndex + i + 1; // Inicia la cola numerada en 1
+                string durationStr = track.Duration.TotalHours >= 1
+                    ? track.Duration.ToString(@"hh\:mm\:ss")
+                    : track.Duration.ToString(@"mm\:ss");
+
+                sb.AppendLine($"**{trackNumber}.** {track.Title} - `{durationStr}`");
+                if (!string.IsNullOrWhiteSpace(track.Autor))
+                {
+                    sb.AppendLine($"{track.Autor}");
+                }
+                sb.AppendLine();
             }
-            return new EmbedBuilder().WithColor(new Color(0x7F00FF))
-                .WithAuthor("Lista", avatarUrl)
-                .WithTitle($"{musics[0]}.\nDespues:\n")
-                .WithDescription($"{msg}")
+
+            sb.AppendLine($"Page {page}/{totalPages}");
+
+            string totalDurationFormatted = totalDuration.TotalHours >= 1
+                ? totalDuration.ToString(@"hh\:mm\:ss")
+                : totalDuration.ToString(@"mm\:ss");
+
+            var queueEmbed = new EmbedBuilder()
+                .WithTitle($"({totalTracks}) songs in queue for {totalDurationFormatted}")
+                .WithDescription(sb.ToString())
+                .WithColor(new Color(114, 137, 218))
                 .Build();
+
+            return [nowPlayingEmbed.Build(), queueEmbed];
         }
 
         public static Embed BuildTrackNotFoundEmbed(int position)

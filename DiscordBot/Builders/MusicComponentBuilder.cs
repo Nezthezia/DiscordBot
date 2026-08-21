@@ -11,6 +11,10 @@ namespace DiscordBot.Builders
 
         public static bool GetIsPaused() => _isPaused;
         public static bool GetIsBucle() => _isBucle;
+
+        public static void SetIsBucle(bool isBucle) => _isBucle = isBucle;
+        public static void SetIsPaused(bool isPaused) => _isPaused = isPaused;
+
         public static MessageComponent BuildPlayerComponents(bool isBucle, bool isPaused)
         {
             _isBucle = isBucle;
@@ -20,7 +24,7 @@ namespace DiscordBot.Builders
             string bucleLabel = _isBucle ? "Quitar bucle" : "Bucle";
 
             IEmote pauseEmoji = _isPaused ? new Emoji("▶️") : new Emoji("⏸");
-            IEmote bucleEmoji = _isBucle ? new Emoji("🔄") : new Emoji("▶️");
+            IEmote bucleEmoji = _isBucle ? new Emoji("▶") : new Emoji("🔄");
 
             ButtonStyle pauseStyle = _isPaused ? ButtonStyle.Success : ButtonStyle.Secondary;
             ButtonStyle bucleStyle = _isBucle ? ButtonStyle.Success : ButtonStyle.Secondary;
@@ -37,5 +41,25 @@ namespace DiscordBot.Builders
 
             return builder.Build();
         }
+
+        public static MessageComponent BuildQueueComponents(int currentPage, int totalPages)
+        {
+            var builder = new ComponentBuilder();
+
+            builder.WithButton(
+                customId: $"{AudioButtonIds.QueuePage}:{currentPage - 1}",
+                emote: new Emoji("◀"),
+                style: ButtonStyle.Secondary,
+                disabled: currentPage <= 1);
+
+            builder.WithButton(
+                customId: $"{AudioButtonIds.QueuePage}:{currentPage + 1}",
+                emote: new Emoji("▶"),
+                style: ButtonStyle.Secondary,
+                disabled: currentPage >= totalPages);
+
+            return builder.Build();
+        }
+
     }
 }

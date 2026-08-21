@@ -9,6 +9,7 @@ using Lavalink4NET.Tracks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Collections.Concurrent;
+using System.Numerics;
 using static System.Net.WebRequestMethods;
 
 using IAudioService = Lavalink4NET.IAudioService;
@@ -28,6 +29,7 @@ namespace Infrastructure.Services
         private readonly ConcurrentDictionary<ulong, Stack<LavalinkTrack>> _history = new();
         private readonly ConcurrentDictionary<ulong, bool> _isRevertingHistory = new();
         private readonly ConcurrentDictionary<ulong, CancellationTokenSource> _updateCancellations = new();
+        private readonly ConcurrentDictionary<ulong, TrackInfoDto> _currentTracks = new();
 
 
         public LavalinkAudioService(
@@ -84,13 +86,28 @@ namespace Infrastructure.Services
                     await player.Queue.AddAsync(new TrackQueueItem(tracks[i]));
             }
 
-            return new TrackInfoDto(
+            var trackInfo =  new TrackInfoDto(
                 Autor: track.Author,
                 Title: track.Title,
                 Duration: track.Duration,
                 Position: TimeSpan.Zero,
-                IsPlayingNow: !isPlaying
+                IsPlayingNow: !isPlaying,
+
+                //Valores nulos
+                //RequestedByMention: requestedByMention,
+                //ChannelName: channelName,
+                QueueSize: player.Queue.Count,
+                Volume: (int)(player.Volume * 100),
+                Uri: player.CurrentTrack?.Uri?.AbsoluteUri,
+                ArtworkUri: player.CurrentTrack?.ArtworkUri?.AbsoluteUri
                 );
+
+            if (trackInfo.IsPlayingNow)
+            {
+                _currentTracks[guildId] = trackInfo;
+            }
+
+            return trackInfo;
         }
 
         public async Task SkipAsync(ulong guildId)
@@ -113,25 +130,62 @@ namespace Infrastructure.Services
             return results;
         }
 
-        public async Task<IEnumerable<string>> GetQueueAsync(ulong guildId)
+        public async Task<IEnumerable<TrackInfoDto>> GetQueueAsync(ulong guildId)
         {
             if (_lavalink.Players.TryGetPlayer<QueuedLavalinkPlayer>(guildId, out var player) && player is not null)
             {
-                var resultado = new List<string>();
+                var resultado = new List<TrackInfoDto>();
 
+                int queueCount = player.Queue.Count;
+                int volume = (int)(player.Volume * 100);
+
+                // 1. Agregar la canción que está sonando ahora (si existe)
                 if (player.CurrentTrack is not null)
-                    resultado.Add($"SONANDO AHORA: {player.CurrentTrack.Title} - {player.CurrentTrack.Author}");
+                {
+                    // Reutilizamos el estado guardado si existe para no perder el RequestedByMention / ChannelName
+                    var activeInfo = GetCurrentTrack(player.GuildId);
 
+                    var currentTrackDto = activeInfo ?? new TrackInfoDto(
+                        Autor: player.CurrentTrack.Author,
+                        Title: player.CurrentTrack.Title,
+                        Duration: player.CurrentTrack.Duration,
+                        Position: player.Position != null ? player.Position.Value.Position : TimeSpan.Zero,
+                        IsPlayingNow: true,
+                        RequestedByMention: "Desconocido",
+                        ChannelName: "Canal de voz",
+                        QueueSize: queueCount,
+                        Volume: volume,
+                        Uri: player.CurrentTrack.Uri?.AbsoluteUri,
+                        ArtworkUri: player.CurrentTrack.ArtworkUri?.AbsoluteUri
+                    );
+
+                    resultado.Add(currentTrackDto);
+                }
+
+                // 2. Mapear y agregar la cola de reproducción
                 var enCola = player.Queue
                     .Select(x => x.Track)
-                    .OfType<LavalinkTrack>()
-                    .Select(t => $"{t.Title} - {t.Author}");
+                    .Where(t => t is not null)
+                    .Select(t => new TrackInfoDto(
+                        Autor: t.Author,
+                        Title: t.Title,
+                        Duration: t.Duration,
+                        Position: TimeSpan.Zero,
+                        IsPlayingNow: false,
+                        RequestedByMention: "Desconocido",
+                        ChannelName: "Canal de voz",
+                        QueueSize: queueCount,
+                        Volume: volume,
+                        Uri: t.Uri?.AbsoluteUri,
+                        ArtworkUri: t.ArtworkUri?.AbsoluteUri
+                    ));
 
                 resultado.AddRange(enCola);
+
                 return resultado;
             }
 
-            return Enumerable.Empty<string>();
+            return [];
         }
 
         public async Task PauseAsync(ulong guildId)
@@ -201,6 +255,8 @@ namespace Infrastructure.Services
 
         private async Task OnLavalinkTrackEndedAsync(object sender, TrackEndedEventArgs args)
         {
+            if (args.Player is not QueuedLavalinkPlayer player || args.Track is null)
+                return;
 
             if (args.Track is not null &&
                 (!_isRevertingHistory.TryGetValue(args.Player.GuildId, out var isReverting) || !isReverting))
@@ -218,12 +274,23 @@ namespace Infrastructure.Services
             if (TrackEnded is null || args.Track is null)
                 return;
 
+            var currentInfo = GetCurrentTrack(player.GuildId);
+            _currentTracks.TryRemove(player.GuildId, out _);
+
+
             var trackInfo = new TrackInfoDto(
                 Autor: args.Track.Author,
                 Title: args.Track.Title,
                 Duration: args.Track.Duration,
                 Position: args.Track.Duration,
-                IsPlayingNow: false
+                IsPlayingNow: false,
+                //RequestedByMention: requestedByMention,
+                RequestedByMention: currentInfo != null? currentInfo?.RequestedByMention : "Desconocido",
+                ChannelName: currentInfo != null? currentInfo?.ChannelName : "Canal de voz",
+                QueueSize: player.Queue.Count,
+                Volume: (int)(player.Volume * 100),
+                Uri: player.CurrentTrack?.Uri?.AbsoluteUri,
+                ArtworkUri: player.CurrentTrack?.ArtworkUri?.AbsoluteUri
             );
 
             await TrackEnded.Invoke(trackInfo, args.Player.GuildId);
@@ -232,17 +299,27 @@ namespace Infrastructure.Services
 
         private async Task OnLavalinkTrackStartedAsync(object sender, TrackStartedEventArgs args)
         {
-            if (TrackStarted is null || args.Track is null)
+            if (TrackStarted is null || args.Player is not QueuedLavalinkPlayer player || args.Track is null)
                 return;
 
+            var currentInfo = GetCurrentTrack(player.GuildId);
+
             var trackInfo = new TrackInfoDto(
-                Autor: args.Track.Author,
-                Title: args.Track.Title,
-                Duration: args.Track.Duration,
-                Position: TimeSpan.Zero,
-                IsPlayingNow: true
-            );
-            
+                      Autor: args.Track.Author,
+                      Title: args.Track.Title,
+                      Duration: args.Track.Duration,
+                      Position: TimeSpan.Zero,
+                      IsPlayingNow: true,
+                      RequestedByMention: currentInfo is not null ? currentInfo?.RequestedByMention : "Desconocido",
+                      ChannelName: currentInfo is not null ? currentInfo?.ChannelName : "Canal de voz",
+                      QueueSize: player.Queue.Count,
+                      Volume: (int)(player.Volume * 100),
+                      Uri: args.Track.Uri?.AbsoluteUri,
+                      ArtworkUri: args.Track.ArtworkUri?.AbsoluteUri
+                  );
+
+            _currentTracks[player.GuildId] = trackInfo;
+
 
             await TrackStarted.Invoke(trackInfo, args.Player.GuildId);
         }
@@ -287,6 +364,7 @@ namespace Infrastructure.Services
                     await player.Queue.RemoveAtAsync(index);
 
                     var track = item.Track;
+                    var currentInfo = GetCurrentTrack(guildId);
                     if (track is not null)
                     {
                         return new TrackInfoDto(
@@ -294,7 +372,13 @@ namespace Infrastructure.Services
                             Title: track.Title,
                             Duration: track.Duration,
                             Position: TimeSpan.Zero,
-                            IsPlayingNow: false
+                            IsPlayingNow: false,
+                            RequestedByMention: currentInfo is not null ? currentInfo?.RequestedByMention : "Desconocido",
+                            ChannelName: currentInfo is not null ? currentInfo?.ChannelName : "Canal de voz",
+                            QueueSize: player.Queue.Count, // Refleja el tamaño actual tras borrar
+                            Volume: (int)(player.Volume * 100),
+                            Uri: track.Uri?.AbsoluteUri,
+                            ArtworkUri: track.ArtworkUri?.AbsoluteUri
                         );
                     }
                 }
@@ -307,15 +391,26 @@ namespace Infrastructure.Services
         {
             if (_lavalink.Players.TryGetPlayer<QueuedLavalinkPlayer>(guildId, out var player) && player is not null)
             {
+                int queueCount = player.Queue.Count;
+                int volume = (int)(player.Volume * 100);
+
+                var currentInfo = GetCurrentTrack(guildId);
+
                 return player.Queue
                     .Select(x => x.Track)
-                    .OfType<LavalinkTrack>()
+                    .Where(t => t is not null)
                     .Select(t => new TrackInfoDto(
                         Autor: t.Author,
                         Title: t.Title,
                         Duration: t.Duration,
                         Position: TimeSpan.Zero,
-                        IsPlayingNow: false
+                        IsPlayingNow: false,
+                        RequestedByMention: currentInfo is not null ? currentInfo?.RequestedByMention : "Desconocido",
+                        ChannelName: currentInfo is not null ? currentInfo?.ChannelName : "Canal de voz",
+                        QueueSize: queueCount,
+                        Volume: volume,
+                        Uri: t.Uri?.AbsoluteUri,
+                        ArtworkUri: t.ArtworkUri?.AbsoluteUri
                     ))
                     .ToList();
             }
@@ -424,12 +519,20 @@ namespace Infrastructure.Services
 
                     if (item.Track is LavalinkTrack track)
                     {
+                        var currentInfo = GetCurrentTrack(guildId);
+
                         return new TrackInfoDto(
                             Autor: track.Author,
                             Title: track.Title,
                             Duration: track.Duration,
                             Position: TimeSpan.Zero,
-                            IsPlayingNow: false
+                            IsPlayingNow: false,
+                            RequestedByMention: currentInfo is not null ? currentInfo?.RequestedByMention : "Desconocido",
+                            ChannelName: currentInfo is not null ? currentInfo?.ChannelName : "Canal de voz",
+                            QueueSize: player.Queue.Count,
+                            Volume: (int)(player.Volume * 100),
+                            Uri: track.Uri?.AbsoluteUri,
+                            ArtworkUri: track.ArtworkUri?.AbsoluteUri
                         );
                     }
                 }
@@ -437,5 +540,14 @@ namespace Infrastructure.Services
 
             return null;
         }
+
+
+        private TrackInfoDto? GetCurrentTrack(ulong guildId)
+        {
+            _currentTracks.TryGetValue(guildId, out var trackInfo);
+            return trackInfo;
+        }
+
+
     }
 }

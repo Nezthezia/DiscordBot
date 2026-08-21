@@ -224,6 +224,8 @@ namespace DiscordBot.Background
                     {
                         var track = _playerUiService.GetCurrentTrack(guildId);
                         _playerUiService.RemoveActiveMessage(guildId);
+                        MusicComponentBuilder.SetIsBucle(false);
+                        MusicComponentBuilder.SetIsPaused(false);
                         await component.UpdateAsync(msg =>
                         {
                             msg.Content = string.Empty;
