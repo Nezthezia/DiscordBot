@@ -41,7 +41,8 @@ namespace DiscordBot.Moduls
             {
                 _playerUiService.MarkCommandHandlingPlay(Context.Guild.Id);
                 _playerUiService.SetGuildChannel(Context.Guild.Id, Context.Channel.Id);
-                var trackInfoDto = await _audioService.PlayAsync(Context.Guild.Id, voiceChannel.Id, busqueda);
+                var trackInfoDto = await _audioService.PlayAsync(Context.Guild.Id, voiceChannel.Id, busqueda,
+                    Context.Channel.Name, Context.User.Mention);
                 trackInfoDto = trackInfoDto with
                 {
                     ChannelName = Context.Channel.Name,
@@ -134,7 +135,9 @@ namespace DiscordBot.Moduls
                 int totalPages = (int)Math.Ceiling((double)lista.Count - 1 / 10);
 
                 var embeds = MusicEmbedBuilder.BuildListPlayerEmbed(musics: lista, avatarUrl: avatarUrl);
-                var components = MusicComponentBuilder.BuildQueueComponents(1, totalPages);
+                var components = lista.Count > 10 ? MusicComponentBuilder.BuildQueueComponents(1, totalPages)
+                :
+                new ComponentBuilder().Build();
 
                 await FollowupAsync(embeds: embeds, components: components);
 
@@ -192,7 +195,9 @@ namespace DiscordBot.Moduls
             int totalPages = Math.Max(1, (int)Math.Ceiling((double)queueCount / 10));
 
             var embeds = MusicEmbedBuilder.BuildListPlayerEmbed(lista, page: targetPage, pageSize: 10, Context.Client.CurrentUser.GetAvatarUrl());
-            var components = MusicComponentBuilder.BuildQueueComponents(currentPage: targetPage, totalPages);
+            var components = lista.Count > 10 ? MusicComponentBuilder.BuildQueueComponents(currentPage: targetPage, totalPages)
+            :
+            new ComponentBuilder().Build();
 
             await ModifyOriginalResponseAsync(msg =>
             {

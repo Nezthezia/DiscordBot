@@ -5,7 +5,7 @@ namespace Application.Interfaces
 {
     public interface IAudioService
     {
-        Task<TrackInfoDto> PlayAsync(ulong guildId, ulong voiceChannelId, string query);
+        Task<TrackInfoDto> PlayAsync(ulong guildId, ulong voiceChannelId, string query, string channelName, string userName);
         Task SkipAsync(ulong guildId);
         Task<IEnumerable<TrackInfoDto>> GetQueueAsync(ulong guildId);
 

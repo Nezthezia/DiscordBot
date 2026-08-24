@@ -46,7 +46,8 @@ namespace Infrastructure.Services
             _lavalink.TrackStarted += OnLavalinkTrackStartedAsync;
         }
 
-        public async Task<TrackInfoDto> PlayAsync(ulong guildId, ulong voiceChannelId, string query)
+        public async Task<TrackInfoDto> PlayAsync(ulong guildId, ulong voiceChannelId, string query,
+            string channelName, string userName)
         {
             var options = new QueuedLavalinkPlayerOptions { DisconnectOnStop = true };
 
@@ -94,12 +95,12 @@ namespace Infrastructure.Services
                 IsPlayingNow: !isPlaying,
 
                 //Valores nulos
-                //RequestedByMention: requestedByMention,
-                //ChannelName: channelName,
+                RequestedByMention: userName,
+                ChannelName: channelName,
                 QueueSize: player.Queue.Count,
                 Volume: (int)(player.Volume * 100),
-                Uri: player.CurrentTrack?.Uri?.AbsoluteUri,
-                ArtworkUri: player.CurrentTrack?.ArtworkUri?.AbsoluteUri
+                Uri: track.Uri?.AbsoluteUri,
+                ArtworkUri: track.ArtworkUri?.AbsoluteUri
                 );
 
             if (trackInfo.IsPlayingNow)
