@@ -12,6 +12,8 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: discordbot
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
     depends_on:
       - lavalink
     restart: unless-stopped
