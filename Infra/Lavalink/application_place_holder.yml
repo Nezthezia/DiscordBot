@@ -1,0 +1,53 @@
+server:
+  port: 2333
+  address: 0.0.0.0
+
+lavalink:
+  plugins:
+    - dependency: "com.github.topi314.lavasrc:lavasrc-plugin:4.8.3"
+
+  server:
+    password: ${LAVALINK_PASSWORD:VALOR_POR_DEFECTO}
+    sources:
+      youtube: false
+      local: true
+      soundcloud: true
+    bufferDurationMs: 400
+    playerUpdateInterval: 5
+
+metrics:
+  prometheus:
+    enabled: false
+
+logging:
+  level:
+    root: INFO
+    lavalink: INFO
+
+plugins:
+  lavasrc:
+    # Cadena de resolución de audio:
+    # Cuando LavaSrc tiene un track de Spotify/Deezer, intenta encontrar
+    # el audio real en este orden (primero por ISRC, luego por nombre).
+    providers:
+      - "spsearch:%ISRC%"   # 1. Busca en Spotify por código ISRC
+      - "dzsearch:%ISRC%"   # 2. Busca en Deezer  por código ISRC
+      - "spsearch:%QUERY%"  # 3. Busca en Spotify por nombre/artista
+      - "dzsearch:%QUERY%"  # 4. Busca en Deezer  por nombre/artista (fallback final)
+
+    sources:
+      spotify: true
+      deezer: true
+
+    spotify:
+      clientId: ${SPOTIFY_CLIENT_ID:SPOTIFY_CLIENT_ID}
+      clientSecret: ${SPOTIFY_CLIENT_SECRET:SPOTIFY_CLIENT_SECRET}
+      countryCode: "MX"
+      playlistLoadLimit: 6
+      albumLoadLimit: 6
+
+    deezer:
+      # Clave Blowfish que usa Deezer internamente para cifrar el audio.
+      # LavaSrc la necesita para descifrar el stream antes de reproducirlo.
+      arl: "TOKEN_DEEZER"
+      masterDecryptionKey: ${DEEZER_MASTER_KEY:MASTER_KEY_DEEZER}
