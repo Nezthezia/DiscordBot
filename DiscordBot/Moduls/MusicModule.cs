@@ -43,11 +43,7 @@ namespace DiscordBot.Moduls
                 _playerUiService.SetGuildChannel(Context.Guild.Id, Context.Channel.Id);
                 var trackInfoDto = await _audioService.PlayAsync(Context.Guild.Id, voiceChannel.Id, busqueda,
                     Context.Channel.Name, Context.User.Mention);
-                trackInfoDto = trackInfoDto with
-                {
-                    ChannelName = Context.Channel.Name,
-                    RequestedByMention = Context.User.Mention
-                };
+
 
                 string avatarUrl = Context.Client.CurrentUser.GetAvatarUrl();
                 var embed = MusicEmbedBuilder.BuildPlayerEmbed(trackInfoDto, avatarUrl);
