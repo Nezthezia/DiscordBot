@@ -15,6 +15,7 @@
 appsettings.Development.json
 appsettings.Production.json
 appsettings.Local.json
+*.xml
 *.Secret.json
 secrets.json
 .env
